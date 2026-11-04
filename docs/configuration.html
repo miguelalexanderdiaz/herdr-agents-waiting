@@ -13,7 +13,7 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site">
 <a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html" aria-current="page">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html" aria-current="page">Configuration</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
 </header>
 <main id="main">
 
@@ -72,7 +72,7 @@ function publish() {
 <p>Choosing an agent runs Herdr's <code>agent.focus</code> command with that agent's terminal address, then closes the dialog.</p>
 
 <h2 id="constants">Constants</h2>
-<p>These are named at the top of <code>mods/attention-picker/main.js</code>. Edit a copy, not the live folder (see <a href="how-it-works.html#editing">How it works</a>). The page is checked against the code by <code>scripts/check-docs.mjs</code> where the script knows the constant. Two more live in <code>logic.js</code>: <code>STALE_SLACK</code> (10000 ms, the margin of the stale-time guard) and <code>RECHECK</code> (10, the most passes a settled screen is skipped).</p>
+<p>These are named at the top of <code>mods/attention-picker/main.js</code>. Edit a copy, not the live folder (see <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CONTRIBUTING.md#work-on-a-copy-never-the-live-folder">CONTRIBUTING.md</a>). The page is checked against the code by <code>scripts/check-docs.mjs</code> where the script knows the constant. Two more live in <code>logic.js</code>: <code>STALE_SLACK</code> (10000 ms, the margin of the stale-time guard) and <code>RECHECK</code> (10, the most passes a settled screen is skipped).</p>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Constants"><table>
 <thead><tr><th scope="col">Name</th><th scope="col">Value</th><th scope="col">Meaning</th></tr></thead>
 <tbody>
@@ -90,7 +90,6 @@ function publish() {
 </main>
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
-<p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
 <p>This site is plain HTML and CSS, with one small script of its own for the Copy buttons. It loads nothing from other sites.</p>
 </footer>
 </body>

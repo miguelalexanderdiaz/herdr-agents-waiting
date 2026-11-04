@@ -355,7 +355,7 @@ test("verify-install: Herdr's own generated files are ignored", () =>
 
 // ====================================================================================== check-docs
 // A small synthetic site, so these cases test the rules and do not depend on what the documentation says today.
-const PAGES = ["index", "install", "usage", "configuration", "how-it-works", "troubleshooting"];
+const PAGES = ["index", "install", "usage", "configuration", "troubleshooting"];
 const CONSTS = { HOME: '"mods/attention-picker"', POLL_MS: "3000", READ_LINES: "60", READ_CONCURRENCY: "4", SEEN_KEY: '"attention.seen"', HOME_SPACE_NAME: '"~"', LIST_H: "320" };
 function page(name, body, { nav = PAGES, current = name } = {}) {
   const li = nav.map((p) => `<li><a href="${p}.html"${p === current ? ' aria-current="page"' : ""}>${p}</a></li>`).join("");
@@ -368,7 +368,7 @@ function docsFixture() {
   const rows = Object.entries(CONSTS).map(([k, v]) => `<tr><td><code>${k}</code></td><td>${v.replace(/"/g, "")}</td></tr>`).join("");
   const bodies = {
     configuration: `<div class="table-wrap" tabindex="0" role="region" aria-label="Constants"><table><thead><tr><th scope="col">Name</th><th scope="col">Value</th></tr></thead><tbody>${rows}</tbody></table></div>`,
-    "how-it-works": '<p>It runs <code>hc read &lt;address&gt; --lines 60</code> every 3 seconds, at most 4 at a time.</p>',
+    usage: '<p>It runs <code>hc read &lt;address&gt; --lines 60</code> every 3 seconds, at most 4 at a time.</p>',
   };
   for (const p of PAGES) w(`docs/${p}.html`, page(p, bodies[p] ?? "<p>Text.</p>"));
   w("docs/404.html", page("404", "<p>Not found. <a href=\"index.html\">Home</a></p>", { nav: ["index"], current: "" }));
@@ -393,8 +393,8 @@ const pageEdit = (p, from, to) => (d) => sub(d, `docs/${p}.html`, from, to);
 
 test("check-docs: the fixture site passes", () => withDocs());
 test("check-docs: a stale --lines number in the README fails", () => withDocs((d) => sub(d, "README.md", "--lines 60", "--lines 50"), "README.md: says \"--lines 50\""));
-test("check-docs: a stale poll interval in a page fails", () => withDocs(pageEdit("how-it-works", "every 3 seconds", "every 2 seconds"), "docs/how-it-works.html: says \"every 2 seconds\""));
-test("check-docs: a stale concurrency number fails", () => withDocs(pageEdit("how-it-works", "at most 4 at a time", "at most 5 at a time"), "at most 5 at a time"));
+test("check-docs: a stale poll interval in a page fails", () => withDocs(pageEdit("usage", "every 3 seconds", "every 2 seconds"), "docs/usage.html: says \"every 2 seconds\""));
+test("check-docs: a stale concurrency number fails", () => withDocs(pageEdit("usage", "at most 4 at a time", "at most 5 at a time"), "at most 5 at a time"));
 test("check-docs: a stale 'lines of history' number fails", () => withDocs((d) => append(d, "README.md", "\nThe screen plus 40 lines of history.\n"), "40 lines of history"));
 test("check-docs: a stale list height fails", () => withDocs((d) => append(d, "README.md", "\nThe list is at most 300 px tall.\n"), "300 px"));
 test("check-docs: another tick is allowed only if the code has it", async () => {
@@ -411,8 +411,8 @@ test("check-docs: aria-current on the wrong page fails", () => withDocs(pageEdit
 test("check-docs: 404.html is exempt from the navigation set", () => withDocs());
 test("check-docs: a .table-wrap without tabindex fails", () => withDocs(pageEdit("configuration", ' tabindex="0" role="region"', ' role="region"'), "no tabindex"));
 test("check-docs: a <th> without scope fails", () => withDocs(pageEdit("configuration", '<th scope="col">Name</th>', "<th>Name</th>"), "a <th> has no scope"));
-test("check-docs: a long <pre> without tabindex fails", () => withDocs((d) => sub(d, "docs/usage.html", "<p>Text.</p>", `<pre>${"x".repeat(90)}</pre>`), "long <pre>"));
-test("check-docs: a broken link fails", () => withDocs(pageEdit("usage", "<p>Text.</p>", '<p><a href="nowhere.html">x</a></p>'), 'broken link "nowhere.html"'));
+test("check-docs: a long <pre> without tabindex fails", () => withDocs((d) => sub(d, "docs/troubleshooting.html", "<p>Text.</p>", `<pre>${"x".repeat(90)}</pre>`), "long <pre>"));
+test("check-docs: a broken link fails", () => withDocs(pageEdit("troubleshooting", "<p>Text.</p>", '<p><a href="nowhere.html">x</a></p>'), 'broken link "nowhere.html"'));
 test("check-docs: a link to a missing anchor fails", () => withDocs((d) => sub(d, "README.md", "usage.html#top", "usage.html#missing"), "heading/id that does not exist"));
 test("check-docs: a page that loads another origin fails", () => withDocs(pageEdit("usage", "</head>", '<link rel="stylesheet" href="https://cdn.example.invalid/x.css"></head>'), "external origin"));
 test("check-docs: a page without lang fails", () => withDocs(pageEdit("usage", '<html lang="en">', "<html>"), "has no lang"));

@@ -27,12 +27,11 @@ This is a mod for the Herdr desktop app, not a library or a web app. Install by 
 ## Checks
 
 - `npm test` (runs `node --test`, Node 22+; never `node --test tests/`), `node scripts/validate.mjs`, `node scripts/privacy-scan.mjs`, `node scripts/check-docs.mjs`; `node scripts/check-local.mjs` runs them all.
-- CI is defined in scripts/ci.workflow.yml (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet.
+- CI (.github/workflows/ci.yml) runs the checks and unit tests on Linux, Windows and macOS, each on Node 22 and 24; that covers the code, not the mod inside Herdr.
 - `herdr-app check <absolute path to mods/attention-picker>` (needs the desktop app; renders once only).
 
 ## Optional
 
 - [CONTRIBUTING.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/CONTRIBUTING.md): rules for changes.
 - [CHANGELOG.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/CHANGELOG.md): what changed and known limits.
-- [docs/](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/tree/main/docs): the static documentation site (GitHub Pages from main /docs). Once the repository is public and Pages is on, it is at https://miguelalexanderdiaz.github.io/herdr-agents-waiting/
-- The raw.githubusercontent.com links above resolve after the repository is public and the work is on the main branch; until then read the files in the checkout.
+- [docs/](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/tree/main/docs): the static documentation site (GitHub Pages from main /docs), at https://miguelalexanderdiaz.github.io/herdr-agents-waiting/
