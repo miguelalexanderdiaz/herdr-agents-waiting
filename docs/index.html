@@ -13,7 +13,7 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site">
 <a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
 </header>
 <main id="main">
 
@@ -49,12 +49,19 @@
 <li><a href="install.html">Install</a><p>One command, or with an agent or by hand; uninstall.</p></li>
 <li><a href="usage.html">Usage</a><p>What it lists, keys, search, sorts, waiting times, previews.</p></li>
 <li><a href="configuration.html">Configuration</a><p>Props, shared keys, rebinding, notes for layout authors.</p></li>
-<li><a href="how-it-works.html">How it works</a><p>Files, data sources, polling, privacy.</p></li>
 <li><a href="troubleshooting.html">Troubleshooting</a><p>When a key, icon, time or preview is missing; what is not yet verified.</p></li>
 </ul>
 
-<h2 id="privacy">Privacy in one paragraph</h2>
-<p>While the dialog is open it reads the screen text of each blocked or finished agent's terminal (the visible screen plus up to 60 lines of history) with Herdr's own <code>hc read</code>, keeps one line per agent in memory, and never stores or sends it. It stores two small things: a map from agent address to the time it was first seen in its current status (with the status group, Herdr's sequence number and the space id), and your sort choice. It uses no network, runs no other program and reads no files. Herdr does not sandbox mods, so this is a promise of this code, checked by a script in the repository, not a limit set by the platform. The full list is on <a href="how-it-works.html#privacy">How it works</a>.</p>
+<h2 id="privacy">Privacy and permissions</h2>
+<p>In short:</p>
+<ul>
+<li><strong>Network:</strong> none.</li>
+<li><strong>Runs:</strong> only Herdr's own <code>hc read &lt;address&gt; --lines 60</code>, while the dialog is open, for blocked and finished agents. Never Herdr's general <code>exec</code>.</li>
+<li><strong>Reads:</strong> those agents' screen text (the visible screen plus up to 60 lines of history). One line per agent stays in memory and is dropped when the dialog closes. It also reads the shared values <code>agents.since</code> and <code>space.colors</code>.</li>
+<li><strong>Writes:</strong> no files. The mod's local storage keeps a first-seen time per agent address (<code>attention.seen</code>, no screen text); Herdr's shared state keeps your sort (<code>attention.sort</code>).</li>
+<li><strong>Changes:</strong> nothing in your agents. Choosing a row focuses it; no input is sent to any terminal.</li>
+</ul>
+<p>Herdr does not sandbox mods, so this is a promise of this code, not a limit set by Herdr. <code>scripts/validate.mjs</code> checks it on every change; to see for yourself, read <code>main.js</code> or run the <code>rg</code> commands in <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">AGENTS.md</a>.</p>
 
 </main>
 <footer class="site">

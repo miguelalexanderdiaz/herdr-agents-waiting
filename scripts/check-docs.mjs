@@ -123,7 +123,7 @@ if (has(root, "docs/configuration.html") && Object.keys(consts).length) {
 }
 if ("READ_LINES" in consts && "POLL_MS" in consts && "READ_CONCURRENCY" in consts) {
   const msAllowed = new Set(Object.entries(consts).filter(([k, v]) => k.endsWith("_MS") && typeof v === "number").map(([, v]) => v));
-  const quoted = ["README.md", "AGENTS.md", "llms.txt", ...HTML].filter((f) => has(root, f));
+  const quoted = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "llms.txt", ...HTML].filter((f) => has(root, f));
   for (const f of quoted) {
     const t = f.endsWith(".html") ? plain(text(f)) : text(f);
     const bad = (what, found, want) => r.fail(`${f}: says "${what}" but the code has ${want} (${found === undefined ? "" : "document: " + found})`.replace(/ \(\)$/, ""));
@@ -139,7 +139,7 @@ if ("READ_LINES" in consts && "POLL_MS" in consts && "READ_CONCURRENCY" in const
   }
 }
 
-// ---- the six pages share one navigation, each marks itself; tables can be scrolled by keyboard
+// ---- the pages share one navigation, each marks itself; tables can be scrolled by keyboard
 const pages = HTML.filter((f) => f !== "docs/404.html"); // 404 is not part of the nav set (it has no place in it)
 const navOf = (f) => {
   const nav = /<nav\b[^>]*>([\s\S]*?)<\/nav>/i.exec(text(f));

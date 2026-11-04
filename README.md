@@ -99,7 +99,7 @@ agent's status, or of Herdr's sequence number for it, is read at once, so a ques
 may show up to about 30 seconds late.
 
 More in the documentation site (plain HTML in [docs/](docs/index.html): [install](docs/install.html),
-[usage](docs/usage.html), [configuration](docs/configuration.html), [how it works](docs/how-it-works.html),
+[usage](docs/usage.html), [configuration](docs/configuration.html),
 [troubleshooting](docs/troubleshooting.html)). Once the repository is public and GitHub Pages is on, the site is at
 `https://miguelalexanderdiaz.github.io/herdr-agents-waiting/`.
 
