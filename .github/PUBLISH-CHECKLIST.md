@@ -8,6 +8,8 @@ Work through it top to bottom. Each item is a command or a URL.
 
 ## 0. Install the CI workflow (the definition ships in `scripts/ci.workflow.yml`)
 
+Done: `.github/workflows/ci.yml` is installed and runs on every push and pull request.
+
 - [ ] The tool that prepared this repository had a GitHub token without the `workflow` scope, and GitHub refuses any
   push that touches `.github/workflows/`. So the CI definition is a normal file, `scripts/ci.workflow.yml`, and it does
   nothing until you install it. Either:
