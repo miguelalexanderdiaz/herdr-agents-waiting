@@ -15,7 +15,7 @@ const isCI = Boolean(process.env.CI);
 
 // What the portrait layout (which bundles a copy of this mod) relies on.
 // Keep this in step with RECIPE.md "Built from". Changing a name here is a
-// breaking change for that layout: do it on purpose, and say so in CHANGELOG.
+// breaking change for that layout: do it on purpose, and mark it breaking (`feat!:`).
 export const CONTRACT = {
   props: ["search"],
   sharedRead: ["agents.since", "space.colors"],

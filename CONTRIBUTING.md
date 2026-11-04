@@ -42,7 +42,7 @@ them.
    sample screen (strip anything personal). The docs only claim styles that have a fixture.
 2. **The contract kept.** Do not rename `props.search`, the shared keys `attention.sort`, `agents.since`,
    `space.colors`, the command `agent.focus` or the folder `attention-picker`. Say in the pull request if you add one.
-3. **Docs in the same change.** Behavior changes update README, `docs/`, `RECIPE.md` and `CHANGELOG.md`. Numbers and
+3. **Docs in the same change.** Behavior changes update README, `docs/` and `RECIPE.md`. Numbers and
    keys must come from the code (the claim map at the end of AGENTS.md lists where).
 4. **No personal data.** No real names, usernames, home paths (write `~`), emails, hostnames, or content from your own
    terminals or windows in any file, screenshot, fixture or commit message. `node scripts/privacy-scan.mjs` catches the
@@ -58,6 +58,8 @@ them.
 - In the CI definition, pull requests skip the check of commit author e-mail addresses (they are yours and public in
   git); the content of every added line and every commit message is still scanned. Do not put an address in either.
 - A clear subject line and a body that says why.
+- The pull request title becomes the commit on `main` (pull requests are squash-merged) and the line in the changelog, so write it as a [Conventional Commit](https://github.com/conventional-commits/conventionalcommits.org): `feat: ...` for something new, `fix: ...` for a bug fix, `docs: ...` for documentation (all three are listed in the changelog); `ci:`, `test:`, `refactor:`, `build:`, `chore:` or `style:` for the rest, which the changelog leaves out. An optional scope goes in parentheses (`fix(privacy): ...`) and a `!` before the colon marks a breaking change. The `conventional title` check enforces it.
+- Do not edit `CHANGELOG.md` by hand: after each merge, [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release.yml`) updates one release pull request with the next version and its changelog lines. Merging that pull request tags `vX.Y.Z` and publishes the GitHub release.
 - One logical change per commit.
 - Do not rewrite shared history or force-push `main`.
 
