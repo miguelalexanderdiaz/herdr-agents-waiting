@@ -29,8 +29,8 @@ board before the final text was written; C0 only fixed `npm test` and `engines`.
 ## Checks run (scratch clone in the session scratchpad: this branch + code-review G1 + herdr-completeness H3 merged)
 
 - `node scripts/validate.mjs`: ok. `node scripts/privacy-scan.mjs`: ok. `node scripts/verify-install.mjs mods/attention-picker`: ok.
-- `npm test`: 217 pass, 0 fail (Node 26.5, merged tree).
-- `node scripts/check-docs.mjs`: only 7 failures, all the same false positive: check-docs parses `const TICK_MS = 30_000` as 30 (its number regex stops at `_`), so every true "every 30 seconds" is flagged. Posted to herdr-completeness on the board; I did not reword the docs. Links, anchors, nav set, tabindex, scope, constants rows and quoted numbers all pass.
+- `npm test`: 225 pass, 0 fail on the final merged tree (Node 26.5). validate, privacy-scan and verify-install ok.
+- `node scripts/check-docs.mjs`: ok on the final merged tree. An intermediate run flagged "every 30 seconds" because the script parsed `30_000` as 30; herdr-completeness fixed the parse in its RECIPE commit. Links, anchors, nav set, tabindex, scope, constants rows and quoted numbers pass.
 - On this branch alone `check-docs` fails on the relative links to `.github/ISSUE_TEMPLATE/bug_report.yml` and `.github/SECURITY.md`: those files exist on herdr-completeness's branch. Expected until the merge.
 - `rg` claims from the plan: no `R1-`/`R2-`/"code-review log" in CHANGELOG, README, docs; no British spellings; no "no Node / no network inside" as a platform rule; no "the same key closes it"; CI wording only conditional.
 - AGENTS.md claim map: all rows run on the merged tree and print what they claim (constants 8 lines; one `hc(` hit; two `localStorage.` hits; `STALE_SLACK`/`tabProvesNewer`; `headline`; `resolveSpaceColor`; `RECHECK`/`TICK_MS`; ask.js limits; the two `run(` calls).
