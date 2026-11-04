@@ -153,7 +153,10 @@ if (isGitRepo(root)) {
       for (const w of extra) {
         if ([an, cn].some((v) => v.toLowerCase().includes(w.toLowerCase()))) r.fail(`commit ${short}: PRIVACY_EXTRA word in author/committer name`);
       }
-      scanText(body, `commit ${short} message`);
+      // GitHub's merge button writes "Merge pull request #N from <owner>/<branch>": the owner there is
+      // the same public handle as in the clone URL, so it is blanked before the message is scanned.
+      const merge = new RegExp(`^(Merge pull request #\\d+ from )${OWNER}/`, "i");
+      scanText(body.replace(merge, (_, head) => head + " ".repeat(OWNER.length) + "/"), `commit ${short} message`);
       for (const m of body.matchAll(/^Co-Authored-By:\s*(.*)$/gim)) {
         if (!/<noreply@anthropic\.com>\s*$/i.test(m[1]) && !/@users\.noreply\.github\.com>\s*$/i.test(m[1])) r.fail(`commit ${short}: Co-Authored-By names someone other than Claude: ${m[1].slice(0, 40)}`);
       }
