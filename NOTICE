@@ -1,0 +1,16 @@
+Agents waiting for Herdr (herdr-agents-waiting)
+Copyright 2026, the herdr-agents-waiting authors (the holder is named in LICENSE)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Herdr is a product of its own authors and is not affiliated with this project.
+This mod only uses Herdr's public mod API (the "herdr" and "gpui-kit" modules a
+mod can import) and is not a copy of any Herdr file.
+
+Third-party code: none is bundled.
+Third-party assets: none. The two icons in mods/attention-picker (spinner.svg,
+search.svg) and the preview illustration (preview.png, drawn from
+scripts/preview/preview.svg) were made for this project.
+
+Development tools used outside the shipped mod (not distributed with it):
+Node.js (test runner), GitHub Actions.

@@ -1,4 +1,22 @@
+# Written by Herdr into every mod folder; never commit
 gpui-kit.d.ts
 jsconfig.json
-.DS_Store
+
+# Dependencies and tooling
 node_modules/
+.idea/
+.vscode/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local files, backups and secrets
+*.log
+.env
+.env.*
+*.reset-*
+*.bak
+*.bak.*
+/.wt/
