@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>How it works - Agents waiting for Herdr</title>
+<meta name="description" content="The files, data sources, polling, storage and privacy behaviour of the Agents waiting mod.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+<a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html" aria-current="page">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+</header>
+<main id="main">
+
+<h1>How it works</h1>
+<p>Herdr mods are JavaScript run by Herdr's native interface toolkit. There is no browser, no DOM and no Node inside a mod. The mod is a view that Herdr redraws when its inputs change.</p>
+
+<h2 id="files">Files</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>File</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>mod.json</code></td><td>Names the mod and describes its overlay: a dialog 640 px wide.</td></tr>
+<tr><td><code>main.js</code></td><td>The view: reads agents and spaces from Herdr, builds the rows, draws them, handles keys and clicks, polls previews.</td></tr>
+<tr><td><code>logic.js</code></td><td>Pure helpers with no Herdr imports (durations, names, sorting, the status-time rule, selection). This is what the tests load under Node.</td></tr>
+<tr><td><code>ask.js</code></td><td>Pure: turns a terminal screen's text into the one line shown as the preview.</td></tr>
+<tr><td><code>spinner.svg</code>, <code>search.svg</code></td><td>The two icons, drawn for this mod with <code>currentColor</code>.</td></tr>
+</tbody></table></div>
+
+<h2 id="data">Where the data comes from</h2>
+<ul>
+<li><strong>Agents and spaces:</strong> Herdr's <code>agents()</code> and <code>spaces()</code> functions. Each agent has an address, status (<code>blocked</code>, <code>done</code>, <code>working</code>, <code>idle</code>), program, title, space and tab.</li>
+<li><strong>Theme:</strong> Herdr's <code>theme()</code>, so the dialog follows your layout's colours in light or dark.</li>
+<li><strong>Screens:</strong> <code>hc read &lt;address&gt; --lines 60</code> through Herdr's <code>hc</code> function.</li>
+<li><strong>Shared values:</strong> <code>attention.sort</code>, <code>agents.since</code>, <code>space.colors</code> (see <a href="configuration.html#shared">Configuration</a>).</li>
+</ul>
+
+<h2 id="polling">Preview polling</h2>
+<p>When the dialog opens, and then every 3000 milliseconds, the mod looks for blocked and done agents. If there are none it does nothing. Otherwise it reads their screens, at most 4 at a time, and only one pass runs at once: a tick that arrives while the previous pass is still running is skipped. A failed read stores an empty line so the placeholder does not stay forever. Previews for agents that are no longer waiting are dropped. The timer belongs to the dialog and stops when it closes.</p>
+
+<h2 id="status-times">Status times</h2>
+<p>For each agent the mod picks the start of its current status from the first source that has one: shared <code>agents.since</code>, then the tab's <code>working_since</code> (working agents) or <code>changed_at</code> (others), then its own record. The record is a map from agent address to <code>{ s, at }</code> (a status group and a time) kept in the mod's local storage under the key <code>attention.seen</code>. An entry is created the first time the dialog sees an address, replaced when the status changes (done and idle count as one status), and entries for addresses that no longer exist are removed (only while some agents exist, so an empty list during a reload does not wipe it). The record is written only when it changes, and at most 500 entries are read back. Every storage access is wrapped so a failure only means the first-seen times are not kept.</p>
+
+<h2 id="selection">Selection and sorting</h2>
+<p>The selected row is remembered by the agent's address, not by its position, so a status change that reorders the list does not move your highlight to another agent. If the selected agent disappears the selection falls back to the first row. Changing the search or the sort resets it to the first row.</p>
+
+<h2 id="previews-how">How a preview line is found</h2>
+<p><code>ask.js</code> strips terminal colour codes, removes box-drawing characters, drops empty lines and looks at the last 40. For a blocked agent it walks up from the bottom for a line that ends in a question mark, or in a yes/no hint after one, ignoring a leading selector arrow or number. Otherwise, and for finished agents, it takes the last message line (a line starting with a bullet such as <code>&bull;</code>), skipping lines that look like tool calls such as <code>Bash(...)</code>. The result is capped at 200 characters. The markers it recognises are one constant at the top of the file.</p>
+
+<h2 id="privacy">Privacy and permissions</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Does it</th><th>Answer</th></tr></thead>
+<tbody>
+<tr><td>Read other terminals' screens?</td><td>Yes, while the dialog is open, only for blocked and finished agents, through <code>hc read</code>. One line per agent is kept in memory and thrown away when the dialog closes. Nothing is written to disk or sent anywhere.</td></tr>
+<tr><td>Store anything?</td><td>Yes: a map from agent address to the time it was first seen in its status, in the mod's local storage, and your sort choice in Herdr's shared state. It holds no screen text.</td></tr>
+<tr><td>Use the network?</td><td>No.</td></tr>
+<tr><td>Run programs?</td><td>Only <code>hc read</code>. It never uses Herdr's general <code>exec</code>.</td></tr>
+<tr><td>Read or write files?</td><td>No. Herdr itself loads the mod's own icons.</td></tr>
+<tr><td>Change your agents?</td><td>No. Choosing a row focuses it (<code>agent.focus</code>). It sends no input to any terminal.</td></tr>
+</tbody></table></div>
+
+<h2 id="editing">Editing it safely</h2>
+<p>Herdr reloads a mod the moment a file in its folder is saved. Editing the folder in your live Herdr home changes your screen immediately, including half-finished edits. Work in a copy elsewhere, run <code>herdr-app check</code> on that copy, and copy it in last. The repository's <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">AGENTS.md</a> and <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> cover this for agents and contributors.</p>
+
+</main>
+<footer class="site">
+<p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+</footer>
+</body>
+</html>

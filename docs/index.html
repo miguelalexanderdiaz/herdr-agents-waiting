@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Overview - Agents waiting for Herdr</title>
+<meta name="description" content="A Herdr mod that lists the agents that need you or have finished, with what they asked, and every other agent grouped by space.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+<a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+</header>
+<main id="main">
+
+<h1>Agents waiting</h1>
+<p class="lead">One dialog that answers "which of my agents needs me?" It lists the agents that are blocked on you, then the ones that have finished, each with what it asked and how long it has waited. Under a rule it lists every other agent, grouped by space.</p>
+
+<figure>
+<img src="assets/preview.png" alt="Illustration of the Agents waiting dialog: a title, a search box, two agents that need you with their question and wait time, a rule, then agents grouped under space names." width="1100" height="705">
+<figcaption>An illustration drawn with made-up data, not a screenshot.</figcaption>
+</figure>
+
+<h2>What you get</h2>
+<ul>
+<li><strong>Needs you first.</strong> Blocked agents, then finished ones, longest-waiting first. Each row shows the agent's name, its status, how long it has been in that status, its space and tab, and a one-line preview of what it asked.</li>
+<li><strong>Everyone else below a rule</strong>, grouped by space with the space's colour. Agents idle for more than a day fold into an "earlier" line.</li>
+<li><strong>Search</strong> across name, program, space, tab and title. Every word you type must match.</li>
+<li><strong>Three sorts</strong> for the lower list: Recent, Oldest and Space order. <kbd>Tab</kbd> cycles them and Herdr remembers your choice.</li>
+<li><strong>Standalone.</strong> One folder, one key, no other mod needed.</li>
+</ul>
+
+<h2>Quick start</h2>
+<ol>
+<li>Copy <code>mods/attention-picker/</code> into your Herdr app home's <code>mods/</code> folder.</li>
+<li>Add <code>"ctrl-shift-a": "mod.open:attention-picker"</code> to the <code>global</code> and <code>terminal</code> sections of your <code>keys.json</code>.</li>
+<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Press it again, or <kbd>Esc</kbd>, to close.</li>
+</ol>
+<p>Details, including how to let a Herdr agent do it for you, are on the <a href="install.html">Install</a> page.</p>
+
+<h2>Read next</h2>
+<ul class="cards">
+<li><a href="install.html">Install</a><p>By agent or by hand, requirements, uninstall.</p></li>
+<li><a href="usage.html">Usage</a><p>Keys, search, sorts, waiting times, previews.</p></li>
+<li><a href="configuration.html">Configuration</a><p>Props, shared keys, rebinding, opening it from another mod.</p></li>
+<li><a href="how-it-works.html">How it works</a><p>Files, data sources, polling, privacy.</p></li>
+<li><a href="troubleshooting.html">Troubleshooting</a><p>When a key, icon, time or preview is missing.</p></li>
+</ul>
+
+<h2>Privacy in one paragraph</h2>
+<p>While the dialog is open it reads the screen text of each blocked or finished agent's terminal (the visible screen plus up to 60 lines of history) with Herdr's own <code>hc read</code>, keeps one line per agent in memory, and never stores or sends it. It stores one thing on disk: a map from agent address to the time it was first seen in its current status. It uses no network, runs no other program and reads no files. The full list is on <a href="how-it-works.html#privacy">How it works</a>.</p>
+
+</main>
+<footer class="site">
+<p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+</footer>
+</body>
+</html>
