@@ -1,0 +1,14 @@
+# What install/install.sh and install/install.ps1 install from this repository, one instruction per
+# line: the word, then its values (a mod name has no spaces). The words are described in
+# install/manifest of herdr-portrait-layout, which uses all of them:
+#   mods  mod folders copied from mods/ (an older copy is backed up, then replaced)
+#   keys  the keys.json merged into yours (asks before replacing a key you use)
+#   say   what the person reads before anything is written
+name     Agents waiting
+mods     attention-picker
+keys     keys.json
+say      Network: none.
+say      Runs programs: hc read <agent> --lines 60, for the agents that need you or finished, while the
+say        list is open (one line per agent is kept in memory, never written or sent anywhere).
+say      Reads outside its folder: nothing. Writes: its own storage (agent address, state, time).
+say      Keys: ctrl-shift-a opens the list (also inside terminals, where programs no longer get it).

@@ -34,6 +34,26 @@ list once you have looked at it, because Herdr then calls it idle; it then sits 
 
 ## Install
 
+### One command
+
+macOS and Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.ps1 | iex
+```
+
+It says what the mod reaches (no network; `hc read` on waiting agents' screens while the list is open) and asks before writing anything. Then it copies `mods/attention-picker` into your Herdr home, adds `ctrl-shift-a` to `keys.json` (asking before it replaces a key you use) and runs `herdr-app check`. Anything it replaces is backed up first under `community/herdr-agents-waiting/` in the Herdr home;
+running it again updates in place. From a clone: `install/install.sh` (or `.\install\install.ps1`).
+No questions: `sh -s -- --yes` (Windows: `$env:HERDR_YES = 1` first). Another Herdr home: `--home
+<folder>` or `HERDR_APP_HOME`. Merging `keys.json` uses Node, or on macOS the system's own JavaScript;
+without either it prints the keys to add by hand.
+
 ### With a Herdr agent
 
 Paste this into an agent that works in your Herdr home:
@@ -186,7 +206,14 @@ tracker (the [bug report form](.github/ISSUE_TEMPLATE/bug_report.yml) asks for y
 
 ## Uninstall
 
-Delete the `mods/attention-picker` folder from your Herdr home and remove the `mod.open:attention-picker` lines from
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh -s -- --uninstall
+```
+
+(Windows: `$env:HERDR_UNINSTALL = 1` before the `irm ... | iex` line.) It removes what it installed
+and the keys it added (not ones you changed since), backing them up first. 
+
+By hand: Delete the `mods/attention-picker` folder from your Herdr home and remove the `mod.open:attention-picker` lines from
 `keys.json`. The shared value `attention.sort` and the mod's stored first-seen times are left behind; nothing reads
 them once the mod is gone.
 
