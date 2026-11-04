@@ -23,7 +23,7 @@ them; this mod's own policy, checked by `scripts/validate.mjs`, is to use none o
 | `RECIPE.md`, `preview.png` | the brief and illustration Herdr's sharing format asks for |
 | `tests/` | `node:test` tests: the pure modules, `main.js` under stand-in modules (`tests/helpers/`), and the repository scripts |
 | `scripts/` | `validate.mjs`, `privacy-scan.mjs`, `check-docs.mjs`, `check-local.mjs` (the one-shot gate that runs all of them), `ci.workflow.yml` |
-| `docs/` | the GitHub Pages site (plain HTML and CSS) |
+| `docs/` | the GitHub Pages site (plain HTML and CSS, one small script for the Copy buttons) |
 
 Herdr's own reference is in your Herdr app home (`~/.config/herdr-app`): its `AGENTS.md`, `herdr.d.ts` and
 `gpui-kit.d.ts`. Read those before changing the mod.
@@ -143,8 +143,9 @@ Adding a prop or shared key is a change to this table and needs a `feat:` pull r
   where; re-run each grep after changing the code.
 - Call `preview.png` an illustration, never a screenshot, until the author replaces it with a real one.
 - `docs/assets/preview.png` must be byte-identical to `preview.png` (`node scripts/check-docs.mjs` checks it).
-- The site is plain HTML and CSS: no scripts, no external fonts, analytics or CDNs. Plain `<a href="https://...">`
-  links are fine.
+- The site is plain HTML and CSS: no inline scripts, no external fonts, analytics or CDNs. The one script,
+  `docs/assets/copy.js`, only shows the Copy buttons; site scripts may not reach the network, load code or store
+  anything (`node scripts/check-docs.mjs` checks it). Plain `<a href="https://...">` links are fine.
 - The string `miguelalexanderdiaz/herdr-agents-waiting` is allowed (clone URLs). No other real name or username.
 
 ## Claim to source map
@@ -187,7 +188,7 @@ Run from the repository root. Each command should print what the claim says.
 
 The original mod ran in the author's Herdr on macOS (0.1.12). Later changes passed `herdr-app check` and the unit
 tests; none were watched in a live window. Do not write "works" or "run in Herdr" about them. Not yet observed
-(the same table, with 30-second checks, is in [docs/install.html](docs/install.html#verification)):
+(the same table, with 30-second checks, is in [docs/troubleshooting.html](docs/troubleshooting.html#verification)):
 
 - the key closes the dialog while the search box has focus (`Esc` always does);
 - `Tab` / `Shift+Tab` reach the dialog while the search box has focus;

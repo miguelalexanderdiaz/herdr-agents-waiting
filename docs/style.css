@@ -1,4 +1,5 @@
-/* Agents waiting: documentation site. Plain CSS, no fonts or scripts loaded from elsewhere.
+/* Agents waiting: documentation site. Plain CSS, no fonts or scripts loaded from elsewhere
+   (the one script, assets/copy.js, only shows the Copy buttons).
    Dark only (Kanagawa Dragon palette). The fonts are self-hosted in assets/fonts/ under the
    SIL Open Font License 1.1; see the license files there and NOTICE. */
 
@@ -164,6 +165,45 @@ pre {
 }
 pre code { color: inherit; background: none; border: 0; padding: 0; font-size: inherit; overflow-wrap: normal; }
 
+/* ---- the install commands: a code cell with a Copy button (shown by assets/copy.js; hidden without it) */
+.cmd-label { margin: 1.1rem 0 0.4rem; color: var(--fg-dim); font-size: var(--fs-small); }
+.facts { color: var(--fg-dim); font-size: var(--fs-small); }
+.cell {
+  display: flex; align-items: stretch; margin: 0 0 0.85rem;
+  background: var(--bg-raised); border: 1px solid var(--rule); border-left: 2px solid var(--d-orange);
+}
+.cell pre { flex: 1 1 auto; min-width: 0; margin: 0; border: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cell pre code { overflow-wrap: anywhere; }
+.copy {
+  flex: none; padding: 0 1rem; border: 0; border-left: 1px solid var(--rule); border-radius: 0;
+  background: transparent; color: var(--fg); font: 12px/1.4 var(--f-mono); cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+.copy[hidden] { display: none; }
+.copy:hover { color: var(--d-orange); }
+.copy:focus-visible { outline-offset: -3px; }
+
+/* ---- folded sections: a quiet row, the summary in the serif at h3 size, a chevron that turns when open */
+details.fold { border-top: 1px solid var(--rule); }
+details.fold:last-of-type { border-bottom: 1px solid var(--rule); }
+details.fold > summary {
+  display: flex; align-items: center; gap: 10px; padding: 14px 0; cursor: pointer; list-style: none;
+  font-family: var(--f-serif); font-size: 18px; font-weight: 600; color: var(--fg); line-height: var(--lh-tight);
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before {
+  content: ""; flex: none; width: 7px; height: 7px; margin: 0 4px 0 2px;
+  border-right: 1.5px solid var(--fg-faint); border-bottom: 1.5px solid var(--fg-faint);
+  transform: rotate(-45deg); transition: transform var(--dur-fast) var(--ease);
+}
+details.fold[open] > summary::before { transform: rotate(45deg); }
+details.fold > summary:hover { color: var(--d-old-white); }
+details.fold > summary:focus-visible { outline: 2px solid var(--d-orange); outline-offset: 3px; }
+details.fold > :not(summary) { margin-left: 24px; }
+details.fold > :last-child { margin-bottom: 1.2rem; }
+details.fold h3 { margin-top: 1.2rem; }
+.folds { margin-top: 2rem; }
+
 /* ---- figure */
 figure { margin: 1.6rem 0; }
 figure img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 0; display: block; }
@@ -208,6 +248,11 @@ footer.site p { margin: 0.5rem 0; }
   /* The first column may wrap on a phone so the tables do not need a sideways scroll. */
   th { white-space: normal; }
   td:first-child code, th code { white-space: normal; overflow-wrap: anywhere; }
+  .cell { flex-direction: column; }
+  .copy { border-left: 0; border-top: 1px solid var(--rule); padding: 0.5rem 1rem; text-align: left; }
+  details.fold > :not(summary) { margin-left: 0; }
+  pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre.prose code { overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
