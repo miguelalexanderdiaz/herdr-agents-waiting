@@ -130,7 +130,7 @@ const toMs = (v) => (okTime(v) ? (v < 1e11 ? v * 1000 : v) : null);
 export const STALE_SLACK = 10_000;
 
 // When this agent's current status began, best source first:
-//   shared  - the shared "agents.since" value for its address (the portrait layout's tracker)
+//   shared  - the shared "agents.since" value for its address (when a layout tracks status times)
 //   tab     - the tab's working_since (working) or changed_at (anything else)
 //   seen    - this mod's own first-seen record { s: statusGroup, at } (only if the group still matches)
 // Returns ms since the epoch (never in the future), or null.

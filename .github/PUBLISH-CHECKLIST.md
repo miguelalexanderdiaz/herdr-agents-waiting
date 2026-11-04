@@ -83,10 +83,6 @@ Work through it top to bottom. Each item is a command or a URL.
   `node scripts/verify-install.mjs <that folder> --home <the Herdr home>` (proves the folder name, icons, `mod.json`
   and the key; Herdr's home can be moved with `HERDR_APP_HOME`). Press Ctrl+Shift+A. Expected: the dialog opens with
   the search box on. Write down which system you tried, and the Herdr version.
-- [ ] **Portrait layout resync.** The portrait layout repository bundles a copy of this mod. Copy
-  `mods/attention-picker/*.js`, `*.svg` and `mod.json` (never `gpui-kit.d.ts` or `jsconfig.json`, which Herdr writes),
-  together with `LICENSE`, then run `herdr-app check` there. The compatibility contract is in `scripts/validate.mjs`
-  (`CONTRACT`).
 - [ ] Tell the Herdr community where it is, if you want to (no step above needs it).
 
 ## What is already checked for you
