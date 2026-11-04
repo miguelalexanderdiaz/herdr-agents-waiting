@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Install - Agents waiting for Herdr</title>
+<meta name="description" content="Install the Agents waiting mod into Herdr with an agent or by hand, bind a key, check it, update and remove it.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+<a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+</header>
+<main id="main">
+
+<h1>Install</h1>
+<p class="lead">The mod is one folder. You copy it, bind a key, and check it.</p>
+
+<h2 id="requirements">Requirements</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Need</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Herdr app</td><td>Checked against 0.1.12. The mod uses only Herdr's documented mod API, so newer versions should work; an older one may not.</td></tr>
+<tr><td>Node, npm, a network</td><td>Not needed to run it. Node 22 or newer is needed only to run the tests in this repository.</td></tr>
+<tr><td>Other mods</td><td>None. It works in a bare Herdr install.</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>OS</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>macOS</td><td>The only system where the mod has been run in Herdr.</td></tr>
+<tr><td>Linux, Windows</td><td>The mod is plain JavaScript with no operating-system calls, and its pure logic is tested by CI on all three systems. It has not been run in Herdr on Linux or Windows yet; please report what you find.</td></tr>
+</tbody></table></div>
+
+<h2 id="by-agent">Install with a Herdr agent</h2>
+<p>Herdr's own instructions tell an agent how to add a shared mod. Paste this into any agent that works in your Herdr home:</p>
+<pre><code>Add the Herdr mod from https://github.com/miguelalexanderdiaz/herdr-agents-waiting
+(the folder mods/attention-picker). Read RECIPE.md and AGENTS.md in that repo first and
+tell me what the mod reaches before you copy anything. Merge its keys.json into mine and
+ask me before replacing any key I already use. Then run herdr-app check on the mod folder.</code></pre>
+<p>Once the repository is public and listed, the address <code>herdr.dev/mods/miguelalexanderdiaz/herdr-agents-waiting</code> works the same way.</p>
+
+<h2 id="by-hand">Install by hand</h2>
+<ol>
+<li>Get the files: <code>git clone https://github.com/miguelalexanderdiaz/herdr-agents-waiting.git</code> or download the repository as a zip.</li>
+<li>Copy the <code>mods/attention-picker</code> folder into the <code>mods</code> folder of your Herdr app home. Herdr's documentation puts that home at <code>~/.config/herdr-app</code>. Copy the folder as it is, because the icons are loaded from <code>mods/attention-picker/</code>. If you already have a mod with that name, see <a href="#rename">Name clash</a>.</li>
+<li>Open your <code>keys.json</code> in the same home and add the key from this repository's <code>keys.json</code> to the <code>global</code> and <code>terminal</code> sections. If you already use that key, pick another one; do not overwrite yours.
+<pre><code>{
+  "global":   { "ctrl-shift-a": "mod.open:attention-picker" },
+  "terminal": { "ctrl-shift-a": "mod.open:attention-picker" }
+}</code></pre></li>
+<li>Check the mod: <code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code>. Herdr loads mods and keys live, so there is no restart.</li>
+<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>.</li>
+</ol>
+<div class="note"><p><strong>The check is not a full test.</strong> <code>herdr-app check</code> renders the mod once. It does not run the timers or the screen reads that happen after the dialog has been open for a while, so also open it in the app.</p></div>
+
+<h3>Other ways to open it</h3>
+<ul>
+<li>The command palette (<code>app.palette</code>) lists the <code>mod.open</code> command.</li>
+<li>From a terminal: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. Running it again closes the dialog.</li>
+<li>From another mod: <code>openOverlay({ mod: "attention-picker", kind: "dialog", width: 640 })</code>. See <a href="configuration.html#props">Configuration</a>.</li>
+</ul>
+
+<h2 id="rebind">Use a different key</h2>
+<p>Any key Herdr accepts works. Put <code>"&lt;key&gt;": "mod.open:attention-picker"</code> in the <code>global</code> section (so it works anywhere) and in <code>terminal</code> (so it works while a terminal has focus). The same key toggles: it opens the dialog and closes it. If <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> is taken by a program you run in your terminals, bind another key.</p>
+
+<h2 id="rename">Name clash</h2>
+<p>If a mod called <code>attention-picker</code> already exists, do not overwrite it. Copy this one under another name, for example <code>agents-waiting</code>, and change three places: the folder name, the <code>HOME</code> constant at the top of <code>main.js</code> (it is the folder path used to load the two icons), and the name in your <code>keys.json</code> line (<code>mod.open:agents-waiting</code>). Herdr's <code>mod.clone</code> command, run on an installed mod, rewrites that mod's own <code>mods/&lt;name&gt;/</code> asset paths for the new name; check the <code>HOME</code> constant afterwards.</p>
+
+<h2 id="update">Update</h2>
+<p>Replace the folder with the new one (keep your <code>keys.json</code> line) and run the check again. Herdr reloads a mod when its files change. Do this from a copy outside the Herdr home, so the live window never shows a half-copied folder.</p>
+
+<h2 id="uninstall">Uninstall</h2>
+<ol>
+<li>Delete the <code>mods/attention-picker</code> folder from your Herdr home.</li>
+<li>Remove the <code>mod.open:attention-picker</code> lines from your <code>keys.json</code>.</li>
+<li>Optional: the mod leaves behind one value in Herdr's shared state, <code>attention.sort</code> (your chosen sort), and its first-seen times in its local storage (key <code>attention.seen</code>, kept per mod copy). Nothing reads them once the mod is gone.</li>
+</ol>
+
+</main>
+<footer class="site">
+<p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+</footer>
+</body>
+</html>

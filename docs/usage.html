@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Usage - Agents waiting for Herdr</title>
+<meta name="description" content="Open the Agents waiting dialog, read its rows, and use its keys, search, sorts and waiting times.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+<a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html" aria-current="page">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li></ul></nav>
+</header>
+<main id="main">
+
+<h1>Usage</h1>
+
+<h2 id="open">Open it</h2>
+<p>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> (the key in this repository's <code>keys.json</code>). The same key closes it again. <kbd>Esc</kbd> closes it too. The search box has the focus as soon as it opens.</p>
+
+<h2 id="reading">Reading the dialog</h2>
+<ol>
+<li><strong>Title.</strong> "N agents need you" when some are blocked, otherwise "N finished" when some are done, otherwise "Nothing needs you right now". With no agents at all it says "No agents running" and, under it, "Start one and it will show here".</li>
+<li><strong>Needs you, then finished.</strong> A plain list, blocked agents first, then done ones, the longest-waiting first. Each has two lines. The first has a status dot, the agent's name, the status word (<em>needs you</em> or <em>finished</em>), how long it has been in that status, and its space and tab. The second line is a preview of what the agent asked or said.</li>
+<li><strong>A rule.</strong> Shown only when there are agents on both sides of it.</li>
+<li><strong>Everyone else</strong> (working, idle, unknown), grouped under their space. The space's initial sits on its colour, drawn in white or near-black, whichever reads better; the colour comes from Herdr's shared <code>space.colors</code> and is teal when none is set. A working agent shows a spinner.</li>
+<li><strong>"earlier".</strong> Agents that are not working, not focused, and have been in their status for over 24 hours fold into one line: "earlier: N agents idle for over a day". Select it and press <kbd>Enter</kbd> (or click it) to open or close the fold.</li>
+</ol>
+<p>The name of an agent is its title when that looks like a name (not a path, not an address with <code>@</code>, not just the program name); otherwise a named tab; otherwise the program.</p>
+
+<h2 id="keys">Keys</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Key</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td><kbd>Up</kbd>, <kbd>Down</kbd></td><td>Move the selection; it wraps at both ends. The selection stays on the same agent when the list reorders.</td></tr>
+<tr><td><kbd>Enter</kbd></td><td>Go to the selected agent: Herdr focuses it and the dialog closes. On the "earlier" line it opens or closes the fold instead.</td></tr>
+<tr><td><kbd>Tab</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Next or previous sort for the lower list.</td></tr>
+<tr><td>Typing</td><td>Filters the list (search is on by default).</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Close.</td></tr>
+<tr><td>Click a row</td><td>Same as <kbd>Enter</kbd> on it.</td></tr>
+<tr><td>Mouse wheel</td><td>Scrolls the list (it is at most 320 px tall); the selection follows.</td></tr>
+</tbody></table></div>
+<p>Without the search box (the keys-only variant, see <a href="configuration.html#props">Configuration</a>) the digits <kbd>1</kbd> to <kbd>9</kbd> jump straight to the numbered agent, and the number is drawn at the left of each row. Digits are not shortcuts while the search box is on, because you may be typing them.</p>
+
+<h2 id="search">Search</h2>
+<p>Type to filter. The text is split into words and every word must match, in any order, somewhere in the agent's name, program, space name, tab name or title, or in its status words (<em>needs you</em>, <em>finished</em>, <em>working</em>, <em>idle</em>). Case does not matter. A non-empty search also opens the "earlier" fold so matches in it are visible. When nothing matches the dialog says "No match".</p>
+
+<h2 id="sorts">Sorts</h2>
+<p>The sort button at the top right shows the current sort and its next one on hover. It only orders the lower list; the needs-you and finished rows always keep their longest-waiting-first order.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Sort</th><th>Order</th></tr></thead>
+<tbody>
+<tr><td>Recent</td><td>Latest status change first. This is the default. Agents with no known start come last.</td></tr>
+<tr><td>Oldest</td><td>Longest in its status first. Agents with no known start come first.</td></tr>
+<tr><td>Space order</td><td>As the space tree lists them.</td></tr>
+</tbody></table></div>
+<p>Spaces follow their first agent in the chosen order. The choice is kept in Herdr's shared value <code>attention.sort</code>, so it survives a restart and other mods can read it.</p>
+
+<h2 id="times">Waiting times</h2>
+<p>The time next to a status is how long the agent has been in that status. Where the start comes from, best first:</p>
+<ol>
+<li>Herdr's shared <code>agents.since</code>, if another mod publishes it (the portrait layout does).</li>
+<li>The agent's tab: its <code>working_since</code> for a working agent, its <code>changed_at</code> (when something in the tab last changed state) for any other. It is exact for a tab with one agent and approximate for a tab with several.</li>
+<li>A first-seen time the mod records itself: the first moment the dialog saw this agent in its current status.</li>
+</ol>
+<div class="note warn"><p><strong>Limit.</strong> The dialog only exists while it is open, so it cannot see changes that happen while it is closed. When the first two sources have nothing, an agent that went idle yesterday looks new until the next time you open the dialog, and its time counts from then. Times are estimates.</p></div>
+
+<h2 id="previews">Previews</h2>
+<p>For blocked and finished agents the second line shows what the agent asked or said, read from the end of its terminal's text (the screen plus up to 60 lines of history above it; only the last 40 non-empty lines are looked at). For a blocked agent it is the last line that ends in a question mark, or a yes/no hint such as <code>(y/n)</code> or <code>[y/N]</code>; for a finished agent it is the agent's last message, skipping tool-call lines. Until the first read returns the line shows an ellipsis.</p>
+<p>This is best effort. The recognised shapes are the ones in the test fixtures, drawn by Claude Code style screens: a question box, a numbered choice, a yes/no hint, and "&bull;" message lines. Other agents may show a blank second line; the row still works.</p>
+
+</main>
+<footer class="site">
+<p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+</footer>
+</body>
+</html>
