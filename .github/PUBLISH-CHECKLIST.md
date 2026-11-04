@@ -46,7 +46,8 @@ Work through it top to bottom. Each item is a command or a URL.
   each on Node 22 and 24) must be green. If Actions are unavailable on the private repository, run
   `node scripts/check-local.mjs` on a Windows and a Linux machine instead. Nothing has ever run on Windows or Linux:
   if a job is red, read `gh run view --log-failed` and fix the script, not the check.
-- [ ] **Decide what becomes public with the history.** `plans/` (the round plans, audits and logs) and the
+- [x] **Decide what becomes public with the history.** Done 2026-11-04: `plans/` (the round plans, audits and logs)
+  is no longer tracked (`/plans/` is in `.gitignore`); earlier commits still hold it. Before that: `plans/` and the
   commit messages (more than twenty carry a `Claude-Session:` link trailer) are part of the repository. The privacy scan passes on them (no
   personal data), but they show how the repository was made. Keep them, or publish from a fresh squashed
   repository without `plans/`.
