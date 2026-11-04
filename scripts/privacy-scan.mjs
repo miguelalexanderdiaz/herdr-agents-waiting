@@ -29,6 +29,7 @@ const ALLOWED_MAIL = [
   /^support@github\.com$/i,
   /^noreply@anthropic\.com$/i,
   /^git@github\.com$/i,
+  /^theoverfittingclub@gmail\.com$/i, // the author's public commit address
 ];
 const AUTHORS = (process.env.PRIVACY_AUTHORS || "all").trim().toLowerCase();
 if (!["all", "skip"].includes(AUTHORS)) { console.log(`privacy-scan: PRIVACY_AUTHORS must be "all" or "skip", not "${AUTHORS}"`); process.exit(2); }
