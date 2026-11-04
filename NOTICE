@@ -11,15 +11,16 @@ Third-party code: none is bundled.
 Third-party assets: the documentation site (docs/, not part of the mod) bundles
 three fonts, each under the SIL Open Font License, Version 1.1, whose full text
 and copyright line ship next to the files in docs/assets/fonts/:
-  - Fraunces (fraunces-latin-wght-normal.woff2), Copyright 2018 The Fraunces
+  - Fraunces (fraunces-latin-full-normal.woff2), Copyright 2018 The Fraunces
     Project Authors; license in Fraunces-OFL.txt.
   - Source Serif 4 (source-serif-4-latin-wght-normal.woff2 and
     source-serif-4-latin-wght-italic.woff2), Copyright 2014 - 2023 Adobe, with
     Reserved Font Name 'Source'; license in SourceSerif4-OFL.txt.
   - JetBrains Mono (jetbrains-mono-latin-wght-normal.woff2), Copyright 2020 The
     JetBrains Mono Project Authors; license in JetBrainsMono-OFL.txt.
-The woff2 files are the latin variable-weight builds published by the Fontsource
-project (@fontsource-variable packages, version 5.3), copied unchanged.
+The woff2 files are the latin variable builds published by the Fontsource
+project (@fontsource-variable packages, version 5.3; all axes for Fraunces,
+the weight axis for the other two), copied unchanged.
 Otherwise none bundled. The two icons in mods/attention-picker
 (spinner.svg, search.svg) and the preview illustration (preview.png, drawn from
 scripts/preview/preview.svg) were made for this project. The illustration is
