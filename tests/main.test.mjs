@@ -304,3 +304,16 @@ test("screens are read with hc read --lines 60 for blocked and done agents only"
   for (const args of herdr.log.hcs) assert.deepEqual([args[0], args[2], args[3]], ["read", "--lines", "60"]);
   assert.equal(cx.everys[0][0], 3000, "re-read every 3 s");
 });
+
+test("a settled screen is not read again on the next polls, but a changed seq is", async () => {
+  const { cx, view } = open(mixed());
+  herdr.state.hc = async () => ({ code: 0, stdout: "● Why?\n" });
+  const poll = async () => { const [, tick] = cx.everys.find(([ms]) => ms === 3000); tick(cx); await cx.spawns.at(-1)(cx); };
+  await cx.spawns[0](cx);
+  for (let i = 0; i < 4; i++) await poll();
+  assert.equal(herdr.log.hcs.length, 4, "two blocked/done agents, two reads each, then skipped");
+  herdr.state.agents = herdr.state.agents.map((a) => (a.address === "t1" ? { ...a, seq: 99 } : a));
+  await poll();
+  assert.equal(herdr.log.hcs.length, 5, "only the agent whose seq moved");
+  assert.equal(view.previews.get("t1").text, "Why?");
+});

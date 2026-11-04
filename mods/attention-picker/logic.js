@@ -333,15 +333,25 @@ export function moveSelection(picks, key, delta) {
 
 // ---- previews ---------------------------------------------------------------
 
+// Passes in a row that may skip a settled screen before it is read again anyway
+// (3 s polling: about 30 s at most).
+export const RECHECK = 10;
+
 // Reads what each waiting agent says, one pass at a time and at most
-// `concurrency` reads in flight. `read(address)` resolves to { code, stdout }
-// (or rejects); `parse(stdout, status)` gives the text to show. A failed read
-// stores empty text, so a placeholder never stays forever. `previews` is a
-// Map address -> { status, text}; entries for agents no longer waiting are
-// dropped. pass() resolves to whether `previews` changed, or null when a pass
-// was already running.
+// `concurrency` reads in flight. `want` items are { address, status, seq? }.
+// `read(address)` resolves to { code, stdout } (or rejects); `parse(stdout,
+// status)` gives the text to show. A failed read stores empty text, so a
+// placeholder never stays forever. `previews` is a Map address -> { status,
+// text }; entries for agents no longer waiting are dropped. pass() resolves to
+// whether `previews` changed, or null when a pass was already running.
+//
+// A settled screen is not read again: when an agent has the same status and
+// seq as at its last read, its last read succeeded, the last two successful
+// reads gave the same text, and fewer than RECHECK passes were skipped in a
+// row. A failed read is retried every pass; without a seq nothing is skipped.
 export function createPreviewReader({ read, parse, concurrency = 4 }) {
   let busy = false;
+  const track = new Map(); // address -> { status, seq, ok, text, same, skips }
   return {
     get busy() { return busy; },
     async pass(want, previews) {
@@ -353,14 +363,28 @@ export function createPreviewReader({ read, parse, concurrency = 4 }) {
         for (const address of [...previews.keys()]) {
           if (!live.has(address)) { previews.delete(address); changed = true; }
         }
-        const queue = [...want];
+        for (const address of [...track.keys()]) if (!live.has(address)) track.delete(address);
+        const settled = (w) => {
+          const t = track.get(w.address);
+          return Boolean(t) && previews.has(w.address) && Number.isFinite(w.seq) && t.status === w.status && t.seq === w.seq
+            && t.ok && t.same >= 2 && t.skips < RECHECK;
+        };
+        const queue = [];
+        for (const w of want) {
+          if (settled(w)) track.get(w.address).skips += 1;
+          else queue.push(w);
+        }
         const worker = async () => {
           for (let w = queue.shift(); w; w = queue.shift()) {
             let text = "";
+            let ok = false;
             try {
               const r = await read(w.address);
-              if (r && r.code === 0) text = parse(r.stdout, w.status);
+              if (r && r.code === 0) { text = parse(r.stdout, w.status); ok = true; }
             } catch { /* leave text empty */ }
+            const t = track.get(w.address);
+            const again = ok && t && t.ok && t.status === w.status && t.seq === w.seq && t.text === text;
+            track.set(w.address, { status: w.status, seq: w.seq, ok, text, same: ok ? (again ? t.same + 1 : 1) : 0, skips: 0 });
             const old = previews.get(w.address);
             if (old?.text !== text || old?.status !== w.status) {
               previews.set(w.address, { status: w.status, text });

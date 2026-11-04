@@ -114,7 +114,7 @@ export default class AttentionPicker extends View {
   readPreviews(cx) {
     if (this.dead || this.reader.busy) return;
     const want = agents().filter((a) => a.status === "blocked" || a.status === "done")
-      .map((a) => ({ address: a.address, status: a.status }));
+      .map((a) => ({ address: a.address, status: a.status, seq: a.seq }));
     if (!want.length && !this.previews.size) return;
     cx.spawn(async (cx) => {
       const changed = await this.reader.pass(want, this.previews);

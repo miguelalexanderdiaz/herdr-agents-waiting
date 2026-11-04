@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   DAY, pickSearch, duration, clean, nameOf, normalizeSort, nextSort, statusGroup, statusSince,
   parseSeen, trackSeen, matchesQuery, buildRows, emptyState, resolveSelection, moveSelection,
-  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK, STALE_SLACK,
+  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK, STALE_SLACK, RECHECK,
 } from "../mods/attention-picker/logic.js";
 
 const NOW = 1_800_000_000_000;
@@ -603,4 +603,98 @@ test("buildRows: an agent with an unknown time sorts last under Recent and under
     const rows = buildRows({ agents: [unknown, known1, known2], spaces, sort, now: NOW }).filter((r) => r.kind === "agent");
     assert.deepEqual(rows.map((r) => r.key), [first.address, first === known1 ? known2.address : known1.address, unknown.address], sort);
   }
+});
+
+// ---- preview reader: settled screens are not re-read ---------------------------------
+
+function countingReader(screens = {}) {
+  const calls = [];
+  const reader = createPreviewReader({
+    read: async (address) => {
+      calls.push(address);
+      const v = typeof screens[address] === "function" ? screens[address](calls.filter((c) => c === address).length) : screens[address];
+      if (v instanceof Error) throw v;
+      return v ?? { code: 0, stdout: "screen" };
+    },
+    parse: (out) => out,
+  });
+  return { reader, calls, previews: new Map() };
+}
+const W = (over = {}) => ({ address: "t1", status: "blocked", seq: 5, ...over });
+
+test("reader: a screen with the same status, seq and two equal reads is skipped", async () => {
+  const { reader, calls, previews } = countingReader();
+  assert.equal(await reader.pass([W()], previews), true);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, "two reads are needed to call a screen settled");
+  assert.equal(await reader.pass([W()], previews), false);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, "skipped");
+  assert.deepEqual(previews.get("t1"), { status: "blocked", text: "screen" });
+});
+
+test("reader: a new seq or status reads again", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 4; i++) await reader.pass([W()], previews);
+  assert.equal(calls.length, 2);
+  await reader.pass([W({ seq: 6 })], previews);
+  assert.equal(calls.length, 3, "seq changed");
+  await reader.pass([W({ seq: 6 })], previews);
+  await reader.pass([W({ seq: 6 })], previews);
+  assert.equal(calls.length, 4, "needs two equal reads again before skipping");
+  await reader.pass([W({ seq: 6, status: "done" })], previews);
+  assert.equal(calls.length, 5, "status changed");
+});
+
+test("reader: without a seq nothing is skipped", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 5; i++) await reader.pass([W({ seq: undefined })], previews);
+  assert.equal(calls.length, 5);
+});
+
+test("reader: a failed read (non-zero code or throw) is retried every pass", async () => {
+  for (const bad of [{ code: 1, stdout: "" }, new Error("boom")]) {
+    const { reader, calls, previews } = countingReader({ t1: bad });
+    for (let i = 0; i < 5; i++) await reader.pass([W()], previews);
+    assert.equal(calls.length, 5);
+    assert.equal(previews.get("t1").text, "");
+  }
+});
+
+test("reader: after RECHECK skipped passes the screen is read again", async () => {
+  const { reader, calls, previews } = countingReader();
+  await reader.pass([W()], previews);
+  await reader.pass([W()], previews);
+  for (let i = 0; i < RECHECK; i++) await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, `${RECHECK} skips in a row`);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "then a safety re-read");
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "settled again at once: the count of equal reads kept growing");
+});
+
+test("reader: a text change found on a re-read updates the preview and restarts the settling", async () => {
+  const { reader, calls, previews } = countingReader({ t1: (n) => ({ code: 0, stdout: n <= 2 ? "old" : "new" }) });
+  await reader.pass([W()], previews);
+  await reader.pass([W()], previews);
+  for (let i = 0; i < RECHECK; i++) await reader.pass([W()], previews);
+  assert.equal(await reader.pass([W()], previews), true, "the safety re-read sees the new text");
+  assert.equal(previews.get("t1").text, "new");
+  const n = calls.length;
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, n + 1, "one equal read is not enough to skip");
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, n + 1);
+});
+
+test("reader: an agent that left and came back is read, and the preview map cleared by the caller is refilled", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 3; i++) await reader.pass([W()], previews);
+  await reader.pass([], previews);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "forgotten when it left");
+  previews.clear();
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 4);
+  assert.ok(previews.has("t1"));
 });
