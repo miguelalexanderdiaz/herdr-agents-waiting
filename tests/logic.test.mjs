@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   DAY, pickSearch, duration, clean, nameOf, normalizeSort, nextSort, statusGroup, statusSince,
   parseSeen, trackSeen, matchesQuery, buildRows, emptyState, resolveSelection, moveSelection,
-  createPreviewReader, isPick, contrast, inkOn,
+  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK, STALE_SLACK, RECHECK,
 } from "../mods/attention-picker/logic.js";
 
 const NOW = 1_800_000_000_000;
@@ -423,4 +423,278 @@ test("inkOn: every space mark colour reads at 4.5:1 or better", () => {
   assert.equal(inkOn("#f5f5f5"), "#111111");
   assert.equal(inkOn("not a color"), "#ffffff");
   assert.equal(inkOn(undefined), "#ffffff");
+});
+
+// ---- headline ---------------------------------------------------------------
+
+test("headline: singular and plural for agents that need you", () => {
+  assert.equal(headline({ agents: [{ status: "blocked" }] }), "1 agent needs you");
+  assert.equal(headline({ agents: [{ status: "blocked" }, { status: "blocked" }, { status: "idle" }] }), "2 agents need you");
+});
+
+test("headline: blocked beats done, done alone counts finished", () => {
+  assert.equal(headline({ agents: [{ status: "done" }, { status: "blocked" }, { status: "done" }] }), "1 agent needs you");
+  assert.equal(headline({ agents: [{ status: "done" }, { status: "done" }, { status: "working" }] }), "2 finished");
+});
+
+test("headline: no agents, and agents but none waiting", () => {
+  assert.equal(headline({ agents: [] }), "No agents running");
+  assert.equal(headline({}), "No agents running");
+  assert.equal(headline({ agents: [{ status: "working" }, { status: "idle" }] }), "Nothing needs you right now");
+});
+
+// ---- space colors -----------------------------------------------------------
+
+const THEME = { dim: "#808090", accent: "#5b8def", ansi4: "#0000ff", notAColor: 5 };
+const color = (raw, extra = {}) => resolveSpaceColor({ raw, theme: THEME, dim: THEME.dim, ...extra });
+
+test("normalizeHex: #rgb, #rrggbb and #rrggbbaa become lowercase #rrggbb, anything else null", () => {
+  assert.equal(normalizeHex("#abc"), "#aabbcc");
+  assert.equal(normalizeHex("#AABBCC"), "#aabbcc");
+  assert.equal(normalizeHex("#AABBCCDD"), "#aabbcc");
+  for (const bad of ["abc", "#ab", "#abcd", "#12345", "#ggg", "teal", "", null, undefined, 5, [], {}]) assert.equal(normalizeHex(bad), null, String(bad));
+});
+
+test("inkOn: short and alpha hex pick the same ink as the long form; junk gets white", () => {
+  assert.equal(inkOn("#fa0"), inkOn("#ffaa00"));
+  assert.equal(inkOn("#ffaa00ff"), inkOn("#ffaa00"));
+  assert.equal(inkOn("#ffffff"), "#111111");
+  assert.equal(inkOn("#000"), "#ffffff");
+  for (const bad of ["teal", 5, null, undefined, {}]) assert.equal(inkOn(bad), "#ffffff");
+});
+
+test("resolveSpaceColor: hex values are normalized, names resolve through MARK then the theme", () => {
+  assert.equal(color("#abc"), "#aabbcc");
+  assert.equal(color("#AABBCCDD"), "#aabbcc");
+  assert.equal(color("ansi3"), MARK.ansi3);
+  assert.equal(color("ansi4"), MARK.ansi4, "MARK wins over the theme's own ansi4");
+  assert.equal(color("accent"), THEME.accent, "a theme key that MARK lacks");
+});
+
+test("resolveSpaceColor: junk never throws and falls back to the default, then dim", () => {
+  for (const raw of [5, null, undefined, [], {}, true, "teal", "", "toString", "__proto__", "notAColor"]) {
+    assert.equal(color(raw), MARK.ansi6, String(raw));
+  }
+  assert.equal(color("teal", { mark: {}, theme: {} }), THEME.dim, "no default available gives dim");
+  assert.equal(resolveSpaceColor({}), MARK.ansi6, "even with no arguments but an object");
+});
+
+test("resolveSpaceColor: the home space is always dim", () => {
+  assert.equal(color("#ff0000", { isHome: true }), THEME.dim);
+  assert.equal(color(undefined, { isHome: true }), THEME.dim);
+});
+
+// ---- stale shared agents.since ---------------------------------------------------
+
+test("statusSince: a fresh shared time is kept even when the tab is slightly newer", () => {
+  const shared = NOW - 20 * MIN;
+  const t = tab({ changed_at: shared + STALE_SLACK });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 1 }), shared, "exactly the slack: kept");
+  assert.equal(statusSince({ shared, tab: tab({ changed_at: shared + 1000 }), status: "blocked", now: NOW, tabAgents: 1 }), shared);
+});
+
+test("statusSince: a stale shared time loses to a newer tab change for a lone blocked agent", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - 4 * MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 1 }), NOW - 4 * MIN);
+});
+
+test("statusSince: same for a lone working agent, judged by working_since", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ working_since: NOW - 6 * MIN, changed_at: NOW - MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "working", now: NOW, tabAgents: 1 }), NOW - 6 * MIN);
+  assert.equal(statusSince({ shared, tab: tab({ changed_at: NOW - MIN }), status: "working", now: NOW, tabAgents: 1 }), shared,
+    "no working_since: the tab proves nothing, shared kept");
+});
+
+test("statusSince: the guard never applies to finished or idle agents", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - MIN, working_since: NOW - MIN });
+  for (const status of ["done", "idle"]) assert.equal(statusSince({ shared, tab: t, status, now: NOW, tabAgents: 1 }), shared);
+});
+
+test("statusSince: a tab with several agents or an unknown count keeps the shared time", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 2 }), shared);
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW }), shared, "round-1 behavior");
+});
+
+test("statusSince: a missing tab or an unknown tab time keeps the shared time", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  assert.equal(statusSince({ shared, status: "blocked", now: NOW, tabAgents: 1 }), shared);
+  assert.equal(statusSince({ shared, tab: tab(), status: "blocked", now: NOW, tabAgents: 1 }), shared);
+});
+
+test("buildRows: a stale shared map is ignored for a lone blocked agent, kept beside another agent", () => {
+  const stale = NOW - 5 * 24 * 3600_000;
+  const lone = agent({ status: "blocked", tab: "solo", space: "s1" });
+  const shared = agent({ status: "blocked", tab: "pair", space: "s1" });
+  const mate = agent({ status: "working", tab: "pair", space: "s1" });
+  const spaces = [space("s1", "api", [tab({ id: "solo", changed_at: NOW - 2 * MIN }), tab({ id: "pair", changed_at: NOW - 2 * MIN })])];
+  const sharedSince = { [lone.address]: stale, [shared.address]: stale, [mate.address]: stale };
+  const rows = buildRows({ agents: [lone, shared, mate], spaces, sharedSince, now: NOW });
+  const since = (a) => rows.find((r) => r.key === a.address).since;
+  assert.equal(since(lone), NOW - 2 * MIN);
+  assert.equal(since(shared), stale, "another agent in the tab explains the newer tab time");
+});
+
+test("buildRows: the tab's agent count ignores the search filter", () => {
+  const stale = NOW - 5 * 24 * 3600_000;
+  const a = agent({ status: "blocked", tab: "pair", title: "alpha" });
+  const b = agent({ status: "working", tab: "pair", title: "beta" });
+  const spaces = [space("s1", "api", [tab({ id: "pair", changed_at: NOW - MIN })])];
+  const rows = buildRows({ agents: [a, b], spaces, sharedSince: { [a.address]: stale }, query: "alpha", now: NOW });
+  assert.equal(rows.find((r) => r.key === a.address).since, stale);
+});
+
+// ---- first-seen record: q and sp, null times -------------------------------------
+
+test("trackSeen: a new record stores the agent's seq and space", () => {
+  const r = trackSeen({}, [{ address: "t1", status: "blocked", seq: 7, space: "s1" }], NOW);
+  assert.deepEqual(r.seen.t1, { s: "blocked", at: NOW, q: 7, sp: "s1" });
+});
+
+test("trackSeen: a seq that went down starts a new record", () => {
+  const first = trackSeen({}, [{ address: "t1", status: "idle", seq: 50, space: "s1" }], NOW).seen;
+  const grew = trackSeen(first, [{ address: "t1", status: "idle", seq: 60, space: "s1" }], NOW + MIN);
+  assert.equal(grew.changed, false);
+  assert.equal(grew.seen.t1.at, NOW);
+  const reused = trackSeen(first, [{ address: "t1", status: "idle", seq: 3, space: "s1" }], NOW + 2 * MIN);
+  assert.equal(reused.changed, true);
+  assert.deepEqual(reused.seen.t1, { s: "rest", at: NOW + 2 * MIN, q: 3, sp: "s1" });
+});
+
+test("trackSeen: a different space starts a new record", () => {
+  const first = trackSeen({}, [{ address: "t1", status: "idle", seq: 5, space: "s1" }], NOW).seen;
+  const moved = trackSeen(first, [{ address: "t1", status: "idle", seq: 6, space: "s2" }], NOW + MIN);
+  assert.equal(moved.seen.t1.at, NOW + MIN);
+  assert.equal(moved.seen.t1.sp, "s2");
+});
+
+test("trackSeen: an older record without q and sp keeps its time and gains them", () => {
+  const legacy = parseSeen('{"t1":{"s":"rest","at":' + NOW + '}}');
+  assert.deepEqual(legacy.t1, { s: "rest", at: NOW });
+  const r = trackSeen(legacy, [{ address: "t1", status: "idle", seq: 9, space: "s1" }], NOW + 5 * MIN);
+  assert.deepEqual(r.seen.t1, { s: "rest", at: NOW, q: 9, sp: "s1" });
+  assert.equal(r.changed, true);
+  const again = trackSeen(r.seen, [{ address: "t1", status: "idle", seq: 9, space: "s1" }], NOW + 6 * MIN);
+  assert.equal(again.changed, false);
+});
+
+test("trackSeen: agents without seq or space (older callers) behave as before", () => {
+  const r = trackSeen({}, [{ address: "t1", status: "idle" }], NOW);
+  assert.deepEqual(r.seen.t1, { s: "rest", at: NOW });
+  assert.equal(trackSeen(r.seen, [{ address: "t1", status: "idle" }], NOW + MIN).changed, false);
+});
+
+test("parseSeen: q and sp are kept when valid and dropped when odd", () => {
+  const out = parseSeen(JSON.stringify({ a: { s: "rest", at: 5, q: 3, sp: "s1" }, b: { s: "rest", at: 5, q: "x", sp: 7 } }));
+  assert.deepEqual(out.a, { s: "rest", at: 5, q: 3, sp: "s1" });
+  assert.deepEqual(out.b, { s: "rest", at: 5 });
+});
+
+test("buildRows: an agent with an unknown time sorts last under Recent and under Oldest", () => {
+  const known1 = agent({ tab: "k1" });
+  const known2 = agent({ tab: "k2" });
+  const unknown = agent({ tab: "k3" });
+  const spaces = [space("s1", "api", [tab({ id: "k1", changed_at: NOW - 10 * MIN }), tab({ id: "k2", changed_at: NOW - 60 * MIN })])];
+  for (const [sort, first] of [["recent", known1], ["oldest", known2]]) {
+    const rows = buildRows({ agents: [unknown, known1, known2], spaces, sort, now: NOW }).filter((r) => r.kind === "agent");
+    assert.deepEqual(rows.map((r) => r.key), [first.address, first === known1 ? known2.address : known1.address, unknown.address], sort);
+  }
+});
+
+// ---- preview reader: settled screens are not re-read ---------------------------------
+
+function countingReader(screens = {}) {
+  const calls = [];
+  const reader = createPreviewReader({
+    read: async (address) => {
+      calls.push(address);
+      const v = typeof screens[address] === "function" ? screens[address](calls.filter((c) => c === address).length) : screens[address];
+      if (v instanceof Error) throw v;
+      return v ?? { code: 0, stdout: "screen" };
+    },
+    parse: (out) => out,
+  });
+  return { reader, calls, previews: new Map() };
+}
+const W = (over = {}) => ({ address: "t1", status: "blocked", seq: 5, ...over });
+
+test("reader: a screen with the same status, seq and two equal reads is skipped", async () => {
+  const { reader, calls, previews } = countingReader();
+  assert.equal(await reader.pass([W()], previews), true);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, "two reads are needed to call a screen settled");
+  assert.equal(await reader.pass([W()], previews), false);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, "skipped");
+  assert.deepEqual(previews.get("t1"), { status: "blocked", text: "screen" });
+});
+
+test("reader: a new seq or status reads again", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 4; i++) await reader.pass([W()], previews);
+  assert.equal(calls.length, 2);
+  await reader.pass([W({ seq: 6 })], previews);
+  assert.equal(calls.length, 3, "seq changed");
+  await reader.pass([W({ seq: 6 })], previews);
+  await reader.pass([W({ seq: 6 })], previews);
+  assert.equal(calls.length, 4, "needs two equal reads again before skipping");
+  await reader.pass([W({ seq: 6, status: "done" })], previews);
+  assert.equal(calls.length, 5, "status changed");
+});
+
+test("reader: without a seq nothing is skipped", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 5; i++) await reader.pass([W({ seq: undefined })], previews);
+  assert.equal(calls.length, 5);
+});
+
+test("reader: a failed read (non-zero code or throw) is retried every pass", async () => {
+  for (const bad of [{ code: 1, stdout: "" }, new Error("boom")]) {
+    const { reader, calls, previews } = countingReader({ t1: bad });
+    for (let i = 0; i < 5; i++) await reader.pass([W()], previews);
+    assert.equal(calls.length, 5);
+    assert.equal(previews.get("t1").text, "");
+  }
+});
+
+test("reader: after RECHECK skipped passes the screen is read again", async () => {
+  const { reader, calls, previews } = countingReader();
+  await reader.pass([W()], previews);
+  await reader.pass([W()], previews);
+  for (let i = 0; i < RECHECK; i++) await reader.pass([W()], previews);
+  assert.equal(calls.length, 2, `${RECHECK} skips in a row`);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "then a safety re-read");
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "settled again at once: the count of equal reads kept growing");
+});
+
+test("reader: a text change found on a re-read updates the preview and restarts the settling", async () => {
+  const { reader, calls, previews } = countingReader({ t1: (n) => ({ code: 0, stdout: n <= 2 ? "old" : "new" }) });
+  await reader.pass([W()], previews);
+  await reader.pass([W()], previews);
+  for (let i = 0; i < RECHECK; i++) await reader.pass([W()], previews);
+  assert.equal(await reader.pass([W()], previews), true, "the safety re-read sees the new text");
+  assert.equal(previews.get("t1").text, "new");
+  const n = calls.length;
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, n + 1, "one equal read is not enough to skip");
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, n + 1);
+});
+
+test("reader: an agent that left and came back is read, and the preview map cleared by the caller is refilled", async () => {
+  const { reader, calls, previews } = countingReader();
+  for (let i = 0; i < 3; i++) await reader.pass([W()], previews);
+  await reader.pass([], previews);
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 3, "forgotten when it left");
+  previews.clear();
+  await reader.pass([W()], previews);
+  assert.equal(calls.length, 4);
+  assert.ok(previews.has("t1"));
 });

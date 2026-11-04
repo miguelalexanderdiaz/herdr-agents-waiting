@@ -19,6 +19,13 @@ export function git(root, args) {
   return r.stdout;
 }
 
+// Same as git(), but returns the raw bytes (blobs).
+export function gitBuf(root, args) {
+  const r = spawnSync("git", args, { cwd: root, maxBuffer: 256 * 1024 * 1024 });
+  if (r.error || r.status !== 0) return null;
+  return r.stdout;
+}
+
 export const isGitRepo = (root) => git(root, ["rev-parse", "--is-inside-work-tree"])?.trim() === "true" && existsSync(join(root, ".git"));
 
 const SKIP_DIRS = new Set([".git", "node_modules"]);

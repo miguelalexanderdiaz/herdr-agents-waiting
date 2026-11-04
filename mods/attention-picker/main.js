@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 the herdr-agents-waiting authors; licence: LICENSE in the repository
 // "Agents waiting" (a dialog): the agents that need you and the finished ones in a
 // plain list, then, under a rule, every other agent grouped by space. Picking
 // one shows it (agent.focus) and closes the dialog.
@@ -24,17 +26,17 @@ import { agents, spaces, run, hc, theme, settings, shared, setShared, props, clo
 import { askOf } from "./ask.js";
 import {
   ORDER, WORD, isPick, pickSearch, duration, normalizeSort, nextSort, parseSeen, trackSeen,
-  buildRows, emptyState, inkOn, resolveSelection, moveSelection, createPreviewReader,
+  buildRows, emptyState, headline, inkOn, resolveSpaceColor, resolveSelection, moveSelection, createPreviewReader,
 } from "./logic.js";
 
 const HOME = "mods/attention-picker"; // this mod's folder, for its own assets
 const POLL_MS = 3000; // how often waiting agents' screens are re-read
+const TICK_MS = 30_000; // how often a quiet dialog redraws so "5m" becomes "6m"
 const READ_LINES = 60; // lines of each screen hc read returns
 const READ_CONCURRENCY = 4; // hc read calls in flight at once
-const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms } }
+const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms, q: seq, sp: space id } }
 const HOME_SPACE_NAME = "~"; // Herdr names a space after its folder; the home folder shows as "~" and is drawn dim
 
-const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 const H = { head: 29, agent: 32, waiting: 46, sep: 17, earlier: 35 }; // row heights, as in Go to…
 const SORT_LABEL = { recent: "Recent", oldest: "Oldest", space: "Space order" };
 const SORT_TIP = { recent: "Latest activity first", oldest: "Longest idle first", space: "As the space tree shows them" };
@@ -48,13 +50,6 @@ function saveSeen(seen) {
   try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* storage unavailable: times stay in memory */ }
 }
 
-// The space's color, as every other list shows it (shared "space.colors").
-function spaceColor(t, s) {
-  if (s.name === HOME_SPACE_NAME) return t.dim;
-  const c = (shared("space.colors") ?? {})[s.id] ?? "ansi6";
-  return c.startsWith("#") ? c : (MARK[c] ?? t[c]);
-}
-
 export default class AttentionPicker extends View {
   init(_props, cx) {
     this.selected = null; // key of the selected row (an address, or "earlier"); the first row when null or gone
@@ -62,7 +57,7 @@ export default class AttentionPicker extends View {
     this.scroll = 0;
     this.search = pickSearch(_props ?? props());
     this.showEarlier = false;
-    this.dead = false;
+    this.dead = false; // only guards cx.notify(): tasks and timers are owned by the view and end with it
     this.seen = loadSeen();
     this.track(agents(), Date.now()); // also drops agents that are gone
     // What each waiting agent says (its last question), read off its screen.
@@ -74,6 +69,7 @@ export default class AttentionPicker extends View {
     });
     this.readPreviews(cx);
     cx.timer.every(POLL_MS, (cx) => this.readPreviews(cx));
+    cx.timer.every(TICK_MS, (cx) => { if (!this.dead) cx.notify(); });
     this.handle = cx.focus_handle();
     if (this.search) {
       this.input = InputState.new({ placeholder: "Search agents, spaces, programs…" });
@@ -106,7 +102,7 @@ export default class AttentionPicker extends View {
     const picks = rows.filter(isPick);
     const numbers = new Map(); // key → 1-9 shortcut, "earlier" has none
     for (const r of picks) if (r.kind !== "earlier") numbers.set(r.key, numbers.size + 1);
-    this.cache = { rows, picks, numbers, anyAgents: list.length > 0 };
+    this.cache = { rows, picks, numbers, anyAgents: list.length > 0, title: headline({ agents: list }) };
     return this.cache;
   }
 
@@ -118,7 +114,7 @@ export default class AttentionPicker extends View {
   readPreviews(cx) {
     if (this.dead || this.reader.busy) return;
     const want = agents().filter((a) => a.status === "blocked" || a.status === "done")
-      .map((a) => ({ address: a.address, status: a.status }));
+      .map((a) => ({ address: a.address, status: a.status, seq: a.seq }));
     if (!want.length && !this.previews.size) return;
     cx.spawn(async (cx) => {
       const changed = await this.reader.pass(want, this.previews);
@@ -155,13 +151,10 @@ export default class AttentionPicker extends View {
   render() {
     const t = theme();
     const now = Date.now();
-    const { rows, picks, numbers, anyAgents } = this.view(now);
+    const colors = shared("space.colors");
+    const { rows, picks, numbers, anyAgents, title } = this.view(now);
     const selIdx = resolveSelection(picks, this.selected);
     const sel = picks[selIdx];
-    const asking = picks.filter((r) => r.a?.status === "blocked").length;
-    const done = picks.filter((r) => r.a?.status === "done").length;
-    const title = asking ? `${asking} agent${asking === 1 ? "" : "s"} need${asking === 1 ? "s" : ""} you`
-      : done ? `${done} finished` : (emptyState({ anyAgents }).title ?? "Nothing needs you right now");
     const hint = this.search ? "↑↓ choose · Enter go · Tab sort · Esc" : "↑↓ choose · Enter go · 1–9 jump · Tab sort · Esc";
     const sort = sortNow();
     const sortAfter = nextSort(sort);
@@ -191,7 +184,7 @@ export default class AttentionPicker extends View {
     const row = (r) => {
       if (r.kind === "sep") return v_flex().h(H.sep).px(10).justify_center().child(div().h(1).bg(t.border));
       if (r.kind === "head") {
-        const tile = spaceColor(t, r.s);
+        const tile = resolveSpaceColor({ raw: colors?.[r.s.id], theme: t, dim: t.dim, isHome: r.s.name === HOME_SPACE_NAME });
         return h_flex().px(10).pt(10).pb(3).gap(8).items_center().text_size(11).font_semibold().text_color(t.dim)
           .child(h_flex().size(18).rounded(5).bg(tile).items_center().justify_center()
             .text_size(10.5).font_bold().text_color(inkOn(tile)).child([...r.s.name][0]?.toUpperCase() ?? "?"))
@@ -234,7 +227,7 @@ export default class AttentionPicker extends View {
         if (k === "down" && picks.length) this.selected = moveSelection(picks, this.selected, 1);
         else if (k === "up" && picks.length) this.selected = moveSelection(picks, this.selected, -1);
         else if (k === "enter" && !this.search) { this.go(sel); if (sel?.kind !== "earlier") return; }
-        else if (k === "tab") this.setSort(nextSort(sort, e.modifiers?.shift ? -1 : 1));
+        else if (k === "tab") this.setSort(nextSort(sortNow(), e.modifiers?.shift ? -1 : 1)); // not `sort`: key repeat can fire twice before a render
         else if (!this.search && /^[1-9]$/.test(k) && !e.modifiers?.control && !e.modifiers?.platform) return this.go(picks.find((x) => numbers.get(x.key) === Number(k)));
         else return;
         cx.stop_propagation();
@@ -244,7 +237,7 @@ export default class AttentionPicker extends View {
         .child(div().flex_1().text_size(15).font_semibold().text_color(t.foreground).child(title))
         .child(h_flex().id("ap-sort").mr(10).h(22).px(8).gap(4).items_center().rounded(6).cursor_pointer()
           .text_size(11.5).text_color(t.muted).bg(t.raised).hover((el) => el.bg(t.hover).text_color(t.foreground))
-          .on_click((_e, cx) => { this.setSort(sortAfter); cx.notify(); })
+          .on_click((_e, cx) => { this.setSort(nextSort(sortNow())); cx.notify(); })
           .tooltip(`${SORT_TIP[sort]} · click or Tab for ${SORT_LABEL[sortAfter]}`)
           .child(div().text_color(t.dim).child("Sort"))
           .child(SORT_LABEL[sort]))

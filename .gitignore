@@ -20,3 +20,7 @@ desktop.ini
 *.bak
 *.bak.*
 /.wt/
+
+# Screenshots taken with `herdr-app shot` (default name) and local assistant state; review before adding one
+herdr-shot*.png
+.claude/

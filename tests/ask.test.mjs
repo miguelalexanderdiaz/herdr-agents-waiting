@@ -93,3 +93,45 @@ test("only the last 40 lines are considered", () => {
   const screen = `● old message\n${"filler\n".repeat(50)}`;
   assert.equal(askOf(screen, "done"), "");
 });
+
+// ---- indented lists, markers, boxes (round 2) --------------------------------
+
+test("done: list items inside a message are not the message", () => {
+  assert.equal(askOf("● Done. I changed:\n  • fixed a\n  • fixed b\n\n> ", "done"), "Done. I changed:");
+  assert.equal(askOf("● Done. I changed:\n  - fixed a\n  - fixed b\n", "done"), "Done. I changed:");
+  assert.equal(askOf("● Summary of the change\n    • first detail\n    • second detail", "done"), "Summary of the change");
+});
+
+test("done: a message, a tool call, then a final prose line", () => {
+  const screen = "● I'll run the tests.\n● Bash(npm test)\n  ⎿  42 passed\n● All 42 tests pass.\n\n> ";
+  assert.equal(askOf(screen, "done"), "All 42 tests pass.");
+});
+
+test("done: a message inside a box border still starts at the border", () => {
+  assert.equal(askOf("│ ● Finished the migration │\n│   • table a       │\n╰────╯", "done"), "Finished the migration");
+});
+
+test("blocked: the marker is stripped from a question", () => {
+  assert.equal(askOf("● Why?\n\n● Thinking", "blocked"), "Why?");
+  assert.equal(askOf("● Which database should I use?", "blocked"), "Which database should I use?");
+  assert.equal(askOf("⏺ Should I continue? (y/n)", "blocked"), "Should I continue? (y/n)");
+});
+
+test("blocked: a question in a box with Yes / No options", () => {
+  const screen = [
+    "╭────────────────────────────────╮",
+    "│ Edit file src/a.js             │",
+    "│ Do you want to make this edit? │",
+    "│ ❯ 1. Yes                       │",
+    "│   2. Yes, allow all edits      │",
+    "│   3. No, and tell Claude       │",
+    "╰────────────────────────────────╯",
+  ].join("\n");
+  assert.equal(askOf(screen, "blocked"), "Do you want to make this edit?");
+});
+
+test("blocked: a trailing (y/n) is kept, a lone shortcuts footer is not a question", () => {
+  assert.equal(askOf("Remove the old build folder? (y/n)", "blocked"), "Remove the old build folder? (y/n)");
+  assert.equal(askOf("  ? for shortcuts", "blocked"), "");
+  assert.equal(askOf("● Waiting for you\n  ? for shortcuts", "blocked"), "Waiting for you");
+});
