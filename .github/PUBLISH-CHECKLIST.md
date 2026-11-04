@@ -6,13 +6,25 @@ visibility, settings, topics or Pages, and they do not drive the running app. In
 
 Work through it top to bottom. Each item is a command or a URL.
 
-## 0. Land the CI workflow (round 1 could not push it)
+## 0. Install the CI workflow (the definition ships in `scripts/ci.workflow.yml`)
 
-- [ ] The round agents' GitHub token has no `workflow` scope, so GitHub refused to take `.github/workflows/ci.yml`
-  from them. The finished file is kept as the commit "Add CI on Linux, Windows and macOS" on the local branch
-  `feat/round-1-standalone-picker--herdr-completeness-ci` of the working copy. With your own login:
-  `gh auth refresh -s workflow`, then `git push origin feat/round-1-standalone-picker--herdr-completeness-ci`
-  (or copy the file by hand). Then read the first three-OS run: `gh run list`.
+- [ ] The tool that prepared this repository had a GitHub token without the `workflow` scope, and GitHub refuses any
+  push that touches `.github/workflows/`. So the CI definition is a normal file, `scripts/ci.workflow.yml`, and it does
+  nothing until you install it. Either:
+  - with your own login: `gh auth refresh -s workflow`, then copy the file byte for byte
+    (`mkdir -p .github/workflows && cp scripts/ci.workflow.yml .github/workflows/ci.yml`; on Windows PowerShell
+    `New-Item -Force -ItemType Directory .github/workflows; Copy-Item scripts/ci.workflow.yml .github/workflows/ci.yml`),
+    commit and push; or
+  - in the GitHub web UI: Add file, Create new file, name it `.github/workflows/ci.yml`, paste the content of
+    `scripts/ci.workflow.yml`, commit (no token scope needed).
+- [ ] Check that the copy is identical: `node scripts/validate.mjs` fails when the two files differ.
+- [ ] Start a run and read it: `gh workflow run ci` (the workflow has a manual trigger), then `gh run list`.
+  Expected: six green jobs (Linux, Windows and macOS, each on Node 22 and 24). Until a run is green, every claim
+  that CI covers three operating systems is "defined, not yet run".
+- [ ] On the first Windows job, read the "Platform" step output: it prints the OS, the Node version and
+  `core.autocrlf`, which is where a line-ending problem would show first.
+- [ ] Optional but recommended: set the repository secret `PRIVACY_EXTRA` (step 1). Without it a push to `main`
+  prints a notice and the privacy scan runs its built-in rules only.
 
 ## 1. Before the repository goes public
 

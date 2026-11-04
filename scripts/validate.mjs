@@ -38,8 +38,63 @@ for (const f of files.filter((f) => f.endsWith(".json"))) {
 for (const f of ["LICENSE", "NOTICE", "RECIPE.md", "preview.png", "keys.json", ".gitignore", ".gitattributes"]) {
   if (!has(root, f)) r.fail(`missing ${f}`);
 }
-if (!has(root, ".github/workflows/ci.yml")) (isCI ? r.fail : r.note)("no .github/workflows/ci.yml" + (isCI ? "" : " (warning: pushing a workflow file needs a token with the workflow scope; see .github/PUBLISH-CHECKLIST.md)"));
 if (!has(root, "README.md")) (isCI ? r.fail : r.note)("README.md is missing" + (isCI ? "" : " (warning: the documentation role adds it)"));
+
+// ---- 2b. the CI definition (scripts/ci.workflow.yml) and, once the owner installs it, its copy
+// No YAML parser (zero dependencies): the file is small and written in one fixed style, so this is line matching.
+export const CI_FILE = "scripts/ci.workflow.yml";
+export const CI_INSTALLED = ".github/workflows/ci.yml";
+export function lintWorkflow(text, exists, fail, name = CI_FILE) {
+  const lines = text.split(/\r?\n/);
+  const code = lines.filter((l) => !/^\s*#/.test(l));
+  const body = code.join("\n");
+  for (const os of ["ubuntu-latest", "windows-latest", "macos-latest"]) {
+    if (!new RegExp(`\\b${os}\\b`).test(body)) fail(`${name}: the matrix has no ${os}; the repository promises Linux, Windows and macOS`);
+  }
+  const node = /^\s*node:\s*\[([^\]]*)\]/m.exec(body);
+  if (!node || !/\b22\b/.test(node[1]) || !/\b24\b/.test(node[1])) fail(`${name}: the node matrix must list 22 and 24`);
+  const perm = /^permissions:\s*\n((?:[ \t]+\S.*\n?)+)/m.exec(body + "\n");
+  if (!perm) fail(`${name}: no top-level 'permissions:' block (least privilege: contents: read)`);
+  else {
+    if (!/^\s+contents:\s*read\s*$/m.test(perm[1])) fail(`${name}: permissions must include 'contents: read'`);
+    if (/:\s*write\b/.test(perm[1])) fail(`${name}: permissions grant write access; this workflow only reads`);
+  }
+  if (/permissions:\s*write-all|permissions:\s*read-all/.test(body)) fail(`${name}: permissions must list scopes, not write-all/read-all`);
+  if (/\bpull_request_target\b/.test(body)) fail(`${name}: pull_request_target runs fork code with secrets; do not use it`);
+  const uses = [...body.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)].map((m) => m[1]);
+  if (!uses.length) fail(`${name}: no 'uses:' step (checkout is expected)`);
+  for (const u of uses) {
+    if (/^\.\//.test(u)) continue;
+    if (!/^[\w.-]+\/[\w./-]+@(v\d+(\.\d+){0,2}|[0-9a-f]{40})$/.test(u)) fail(`${name}: '${u}' must be pinned to a version tag (vN) or a full commit SHA`);
+  }
+  if (uses.some((u) => u.startsWith("actions/checkout@")) && !/persist-credentials:\s*false/.test(body)) fail(`${name}: actions/checkout needs 'persist-credentials: false'`);
+  if (!/^\s*workflow_dispatch:/m.test(body)) fail(`${name}: no workflow_dispatch trigger (the owner needs a way to start a run by hand)`);
+  // Every script a step runs must exist in the repository.
+  for (const m of body.matchAll(/\bnode\s+(\S+\.(?:mjs|js|cjs))/g)) {
+    if (!exists(m[1])) fail(`${name}: runs '${m[0]}' but ${m[1]} does not exist`);
+  }
+  for (const m of body.matchAll(/^\s*run:\s*(.*)$/gm)) {
+    const cmd = m[1].trim();
+    if (!cmd || cmd === "|" || cmd === ">" || cmd.startsWith("echo ")) continue;
+    if (/^npm test$/.test(cmd)) { if (!exists("package.json")) fail(`${name}: runs npm test but package.json does not exist`); continue; }
+    if (!/^node\s/.test(cmd)) fail(`${name}: unexpected run command '${cmd.slice(0, 40)}' (only node scripts/*.mjs and npm test are allowed; extend lintWorkflow on purpose)`);
+  }
+  for (const need of ["scripts/validate.mjs", "scripts/privacy-scan.mjs", "scripts/check-docs.mjs"]) {
+    if (!body.includes(`node ${need}`)) fail(`${name}: does not run ${need}`);
+  }
+  if (!/\bnpm test\b/.test(body)) fail(`${name}: does not run npm test`);
+}
+if (!has(root, CI_FILE)) r.fail(`missing ${CI_FILE} (the CI definition; step 0 of .github/PUBLISH-CHECKLIST.md installs it)`);
+else {
+  const ci = read(root, CI_FILE);
+  lintWorkflow(ci, (f) => has(root, f), (m) => r.fail(m));
+  if (has(root, CI_INSTALLED)) {
+    if (read(root, CI_INSTALLED) !== ci) r.fail(`${CI_INSTALLED} differs from ${CI_FILE}; they must be byte-equal (edit ${CI_FILE}, then copy it)`);
+    else r.note(`CI: ${CI_INSTALLED} is installed and equal to ${CI_FILE}`);
+  } else {
+    r.note(`CI: defined in ${CI_FILE}, not installed (the owner copies it to ${CI_INSTALLED}; see .github/PUBLISH-CHECKLIST.md step 0)`);
+  }
+}
 
 // ---- 3. this is a mod repo: mods/<name>/ only, no layouts/
 if (files.some((f) => f.startsWith("layouts/"))) r.fail("layouts/ exists: this is a mod repo (topic herdr-mod); a layout needs its own checks");
