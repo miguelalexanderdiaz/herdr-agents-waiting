@@ -197,12 +197,25 @@ td:first-child code, th code { white-space: nowrap; overflow-wrap: normal; }
 .cards a { font-family: var(--f-display); font-weight: 500; font-size: 18px; }
 .cards p { margin: 0.25rem 0 0; color: var(--fg-dim); font-size: 15px; line-height: 1.55; }
 
+/* "What you get": one card per feature, its picture above its text */
+.features { list-style: none; padding: 0; display: grid; gap: 16px; margin: 1rem 0; }
+.features li {
+  background: var(--bg-raised); border: 1px solid var(--rule); border-left: 2px solid var(--d-orange);
+  border-radius: var(--r-card); padding: 14px 16px 6px; margin: 0;
+  transition: border-left-color var(--dur) var(--ease);
+}
+.features li:hover { border-left-color: var(--d-yellow); }
+.features img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 0; background: var(--d-ink-0); }
+.features p { margin: 0.75rem 0 0.6rem; }
+.features a.pic { display: block; }
+
 /* ---- footer */
 footer.site { padding-top: 18px; padding-bottom: 40px; border-top: 1px solid var(--rule); color: var(--fg-dim); font-size: var(--fs-small); }
 footer.site p { margin: 0.5rem 0; }
 
 @media (max-width: 480px) {
   body { font-size: 16px; }
+  .features li { padding: 10px 10px 4px; }
   .lead { font-size: 18px; }
   nav.site ul { gap: 4px 18px; }
   /* The first column may wrap on a phone so the tables do not need a sideways scroll. */
@@ -213,6 +226,6 @@ footer.site p { margin: 0.5rem 0; }
   * { scroll-behavior: auto !important; transition: none !important; }
 }
 @media (forced-colors: active) {
-  kbd, .note, .cards li, pre { border: 1px solid CanvasText; }
+  kbd, .note, .cards li, .features li, pre { border: 1px solid CanvasText; }
   nav.site a[aria-current="page"] { text-decoration: underline; }
 }
