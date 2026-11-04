@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>Overview - Agents waiting for Herdr</title>
 <meta name="description" content="A Herdr mod that lists the agents that need you or have finished, with what they asked, and every other agent grouped by space.">
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,38 +25,42 @@
 <figcaption>An illustration drawn with made-up data, not a screenshot.</figcaption>
 </figure>
 
-<h2>What you get</h2>
+<h2 id="what">What you get</h2>
 <ul>
-<li><strong>Needs you first.</strong> Blocked agents, then finished ones, longest-waiting first. Each row shows the agent's name, its status, how long it has been in that status, its space and tab, and a one-line preview of what it asked.</li>
-<li><strong>Everyone else below a rule</strong>, grouped by space with the space's colour. Agents idle for more than a day fold into an "earlier" line.</li>
-<li><strong>Search</strong> across name, program, space, tab and title. Every word you type must match.</li>
+<li><strong>Needs you first.</strong> Blocked agents, then finished ones, each group in the order Herdr last saw them change. Each row shows the agent's name, its status, how long it has been in that status, its space and tab, and a one-line preview of what it asked.</li>
+<li><strong>Everyone else below a rule</strong>, grouped by space with the space's color. Agents idle for more than a day fold into an "earlier" line.</li>
+<li><strong>Search</strong> across name, program, space, tab, title and the status words. Every word you type must match.</li>
 <li><strong>Three sorts</strong> for the lower list: Recent, Oldest and Space order. <kbd>Tab</kbd> cycles them and Herdr remembers your choice.</li>
 <li><strong>Standalone.</strong> One folder, one key, no other mod needed.</li>
 </ul>
 
-<h2>Quick start</h2>
+<h2 id="status">Status</h2>
+<div class="note warn"><p>The original mod ran in the author's Herdr on macOS. The changes made since then pass <code>herdr-app check</code> (it renders the mod once) and the unit tests; they have not been watched in a live window yet. Tested on Herdr 0.1.12 only. The list of what nobody has observed, each with a 30-second check, is on <a href="install.html#verification">Install</a>.</p></div>
+
+<h2 id="quick-start">Quick start</h2>
 <ol>
 <li>Copy <code>mods/attention-picker/</code> into your Herdr app home's <code>mods/</code> folder.</li>
 <li>Add <code>"ctrl-shift-a": "mod.open:attention-picker"</code> to the <code>global</code> and <code>terminal</code> sections of your <code>keys.json</code>.</li>
-<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Press it again, or <kbd>Esc</kbd>, to close.</li>
+<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Press it again, or <kbd>Esc</kbd>, to close: <kbd>Esc</kbd> always works, and the key should (Herdr's <code>mod.open</code> toggles).</li>
 </ol>
 <p>Details, including how to let a Herdr agent do it for you, are on the <a href="install.html">Install</a> page.</p>
 
-<h2>Read next</h2>
+<h2 id="read-next">Read next</h2>
 <ul class="cards">
-<li><a href="install.html">Install</a><p>By agent or by hand, requirements, uninstall.</p></li>
-<li><a href="usage.html">Usage</a><p>Keys, search, sorts, waiting times, previews.</p></li>
-<li><a href="configuration.html">Configuration</a><p>Props, shared keys, rebinding, opening it from another mod.</p></li>
+<li><a href="install.html">Install</a><p>By agent or by hand, requirements, what is not yet verified, uninstall.</p></li>
+<li><a href="usage.html">Usage</a><p>What it lists, keys, search, sorts, waiting times, previews.</p></li>
+<li><a href="configuration.html">Configuration</a><p>Props, shared keys, rebinding, notes for layout authors.</p></li>
 <li><a href="how-it-works.html">How it works</a><p>Files, data sources, polling, privacy.</p></li>
 <li><a href="troubleshooting.html">Troubleshooting</a><p>When a key, icon, time or preview is missing.</p></li>
 </ul>
 
-<h2>Privacy in one paragraph</h2>
-<p>While the dialog is open it reads the screen text of each blocked or finished agent's terminal (the visible screen plus up to 60 lines of history) with Herdr's own <code>hc read</code>, keeps one line per agent in memory, and never stores or sends it. It stores one thing on disk: a map from agent address to the time it was first seen in its current status. It uses no network, runs no other program and reads no files. The full list is on <a href="how-it-works.html#privacy">How it works</a>.</p>
+<h2 id="privacy">Privacy in one paragraph</h2>
+<p>While the dialog is open it reads the screen text of each blocked or finished agent's terminal (the visible screen plus up to 60 lines of history) with Herdr's own <code>hc read</code>, keeps one line per agent in memory, and never stores or sends it. It stores two small things: a map from agent address to the time it was first seen in its current status, and your sort choice. It uses no network, runs no other program and reads no files. Herdr does not sandbox mods, so this is a promise of this code, checked by a script in the repository, not a limit set by the platform. The full list is on <a href="how-it-works.html#privacy">How it works</a>.</p>
 
 </main>
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
 <p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
 </footer>
 </body>

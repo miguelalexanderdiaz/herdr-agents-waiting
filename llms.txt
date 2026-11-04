@@ -1,8 +1,8 @@
 # Agents waiting (Herdr mod)
 
-> A Herdr app mod: a dialog that lists the agents that need you or have finished, with a one-line preview of what they asked and how long they have waited, then every other agent grouped by space. Plain JavaScript, one folder (mods/attention-picker), one key (ctrl-shift-a, bound to mod.open:attention-picker). No network, no exec; it reads terminal screen text with `hc read` while open and keeps none of it.
+> A Herdr app mod: a dialog that lists the agents that need you or have finished, with a one-line preview of what they asked and how long they have waited, then every other agent grouped by space. Plain JavaScript, one folder (mods/attention-picker), one key (ctrl-shift-a, bound to mod.open:attention-picker). It uses no network and no exec (this mod's own policy, checked by scripts/validate.mjs; Herdr itself does not sandbox mods); it reads terminal screen text with `hc read` while open and keeps none of it.
 
-This is a mod for the Herdr desktop app, not a library or a web app. Install by copying mods/attention-picker/ into the Herdr app home's mods/ folder and merging keys.json. Tell the person what the mod reaches before installing (see AGENTS.md, "Installing it for a person"). Never edit the live Herdr home while developing: Herdr reloads on every save. Checked against Herdr 0.1.12; run in Herdr on macOS only.
+This is a mod for the Herdr desktop app, not a library or a web app. Install by copying mods/attention-picker/ into the Herdr app home's mods/ folder and merging keys.json. Tell the person what the mod reaches before installing (see AGENTS.md, "Installing it for a person"). Never edit the live Herdr home while developing: Herdr reloads on every save. Tested on Herdr 0.1.12 only. The original mod ran in the author's Herdr on macOS; later changes passed `herdr-app check` and unit tests but have not been watched in a live window, and nothing was run on Linux or Windows (see AGENTS.md, "Verification status").
 
 ## Start here
 
@@ -26,11 +26,13 @@ This is a mod for the Herdr desktop app, not a library or a web app. Install by 
 
 ## Checks
 
-- `npm test` (runs `node --test`, Node 22+), `node scripts/validate.mjs`, `node scripts/privacy-scan.mjs`, `node scripts/check-docs.mjs`.
+- `npm test` (runs `node --test`, Node 22+; never `node --test tests/`), `node scripts/validate.mjs`, `node scripts/privacy-scan.mjs`, `node scripts/check-docs.mjs`; `node scripts/check-local.mjs` runs them all.
+- A CI definition for macOS, Linux and Windows is in scripts/ci.workflow.yml; it is not enabled until the owner installs it.
 - `herdr-app check <absolute path to mods/attention-picker>` (needs the desktop app; renders once only).
 
 ## Optional
 
 - [CONTRIBUTING.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/CONTRIBUTING.md): rules for changes.
 - [CHANGELOG.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/CHANGELOG.md): what changed and known limits.
-- [docs/](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/tree/main/docs): the static documentation site (GitHub Pages from main /docs).
+- [docs/](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/tree/main/docs): the static documentation site (GitHub Pages from main /docs). Once the repository is public and Pages is on, it is at https://miguelalexanderdiaz.github.io/herdr-agents-waiting/
+- The raw.githubusercontent.com links above resolve after the repository is public and the work is on the main branch; until then read the files in the checkout.

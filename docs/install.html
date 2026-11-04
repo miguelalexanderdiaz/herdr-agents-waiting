@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>Install - Agents waiting for Herdr</title>
 <meta name="description" content="Install the Agents waiting mod into Herdr with an agent or by hand, bind a key, check it, update and remove it.">
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,23 +21,25 @@
 <p class="lead">The mod is one folder. You copy it, bind a key, and check it.</p>
 
 <h2 id="requirements">Requirements</h2>
-<div class="table-wrap"><table>
-<thead><tr><th>Need</th><th>Detail</th></tr></thead>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Requirements"><table>
+<thead><tr><th scope="col">Need</th><th scope="col">Detail</th></tr></thead>
 <tbody>
-<tr><td>Herdr app</td><td>Checked against 0.1.12. The mod uses only Herdr's documented mod API, so newer versions should work; an older one may not.</td></tr>
+<tr><td>Herdr app</td><td>Tested on 0.1.12 only. The mod uses only Herdr's documented mod API, but no other version has been tried.</td></tr>
 <tr><td>Node, npm, a network</td><td>Not needed to run it. Node 22 or newer is needed only to run the tests in this repository.</td></tr>
-<tr><td>Other mods</td><td>None. It works in a bare Herdr install.</td></tr>
-</tbody></table></div>
-<div class="table-wrap"><table>
-<thead><tr><th>OS</th><th>Status</th></tr></thead>
+<tr><td>Other mods</td><td>None. It does not need another mod.</td></tr>
+</tbody>
+</table></div>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Operating systems"><table>
+<thead><tr><th scope="col">OS</th><th scope="col">Status</th></tr></thead>
 <tbody>
-<tr><td>macOS</td><td>The only system where the mod has been run in Herdr.</td></tr>
-<tr><td>Linux, Windows</td><td>The mod is plain JavaScript with no operating-system calls, and its pure logic is tested by CI on all three systems. It has not been run in Herdr on Linux or Windows yet; please report what you find.</td></tr>
-</tbody></table></div>
+<tr><td>macOS</td><td>The original mod ran in the author's Herdr. The changes since then have passed <code>herdr-app check</code> and unit tests, and have not been watched in a live window.</td></tr>
+<tr><td>Linux, Windows</td><td>Not run in Herdr. The mod is plain JavaScript with no operating-system calls, and its pure logic runs under Node anywhere. A CI definition for macOS, Linux and Windows is in <code>scripts/ci.workflow.yml</code>; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked. Please report what you find.</td></tr>
+</tbody>
+</table></div>
 
 <h2 id="by-agent">Install with a Herdr agent</h2>
 <p>Herdr's own instructions tell an agent how to add a shared mod. Paste this into any agent that works in your Herdr home:</p>
-<pre><code>Add the Herdr mod from https://github.com/miguelalexanderdiaz/herdr-agents-waiting
+<pre tabindex="0" role="region" aria-label="Prompt to paste into an agent"><code>Add the Herdr mod from https://github.com/miguelalexanderdiaz/herdr-agents-waiting
 (the folder mods/attention-picker). Read RECIPE.md and AGENTS.md in that repo first and
 tell me what the mod reaches before you copy anything. Merge its keys.json into mine and
 ask me before replacing any key I already use. Then run herdr-app check on the mod folder.</code></pre>
@@ -45,26 +48,26 @@ ask me before replacing any key I already use. Then run herdr-app check on the m
 <h2 id="by-hand">Install by hand</h2>
 <ol>
 <li>Get the files: <code>git clone https://github.com/miguelalexanderdiaz/herdr-agents-waiting.git</code> or download the repository as a zip.</li>
-<li>Copy the <code>mods/attention-picker</code> folder into the <code>mods</code> folder of your Herdr app home. Herdr's documentation puts that home at <code>~/.config/herdr-app</code>. Copy the folder as it is, because the icons are loaded from <code>mods/attention-picker/</code>. If you already have a mod with that name, see <a href="#rename">Name clash</a>.</li>
+<li>Copy the <code>mods/attention-picker</code> folder, whole, into the <code>mods</code> folder of your Herdr app home. Herdr's documentation puts that home at <code>~/.config/herdr-app</code>; if yours is elsewhere, use that (Herdr reads the <code>HERDR_APP_HOME</code> variable for it, see <code>herdr-app --help</code>). Copy the folder as it is: <code>main.js</code> imports <code>logic.js</code> and <code>ask.js</code>, and the icons are loaded from <code>mods/attention-picker/</code>. If you already have a mod with that name, see <a href="#rename">Name clash</a>.</li>
 <li>Open your <code>keys.json</code> in the same home and add the key from this repository's <code>keys.json</code> to the <code>global</code> and <code>terminal</code> sections. If you already use that key, pick another one; do not overwrite yours.
-<pre><code>{
+<pre tabindex="0" role="region" aria-label="keys.json entries"><code>{
   "global":   { "ctrl-shift-a": "mod.open:attention-picker" },
   "terminal": { "ctrl-shift-a": "mod.open:attention-picker" }
 }</code></pre></li>
 <li>Check the mod: <code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code>. Herdr loads mods and keys live, so there is no restart.</li>
 <li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>.</li>
 </ol>
-<div class="note"><p><strong>The check is not a full test.</strong> <code>herdr-app check</code> renders the mod once. It does not run the timers or the screen reads that happen after the dialog has been open for a while, so also open it in the app.</p></div>
+<div class="note"><p><strong>The check is not a full test.</strong> <code>herdr-app check</code> renders the mod once. It does not run the timers or the screen reads that happen after the dialog has been open for a while, and it passes a mod whose folder was renamed without changing <code>HOME</code>. Open the dialog in the app too.</p></div>
 
-<h3>Other ways to open it</h3>
+<h3 id="other-ways">Other ways to open it</h3>
 <ul>
-<li>The command palette (<code>app.palette</code>) lists the <code>mod.open</code> command.</li>
-<li>From a terminal: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. Running it again closes the dialog.</li>
+<li>The command palette (<code>app.palette</code>) can run <code>mod.open</code>, which needs the argument <code>name</code> (<code>attention-picker</code>). How the palette asks for that argument is not documented by Herdr and has not been tried; see <a href="#verification">Verification status</a>.</li>
+<li>From a terminal: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. Herdr's command list says <code>mod.open</code> toggles, so running it again closes the dialog. On Windows the quoting of the JSON differs by shell; see <a href="troubleshooting.html#quoting">Troubleshooting</a>.</li>
 <li>From another mod: <code>openOverlay({ mod: "attention-picker", kind: "dialog", width: 640 })</code>. See <a href="configuration.html#props">Configuration</a>.</li>
 </ul>
 
 <h2 id="rebind">Use a different key</h2>
-<p>Any key Herdr accepts works. Put <code>"&lt;key&gt;": "mod.open:attention-picker"</code> in the <code>global</code> section (so it works anywhere) and in <code>terminal</code> (so it works while a terminal has focus). The same key toggles: it opens the dialog and closes it. If <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> is taken by a program you run in your terminals, bind another key.</p>
+<p>Any key Herdr accepts works. Put <code>"&lt;key&gt;": "mod.open:attention-picker"</code> in the <code>global</code> section (so it works anywhere) and in <code>terminal</code> (so it works while a terminal has focus; a focused terminal uses that more specific section). Pressing the key again should close the dialog, because <code>mod.open</code> toggles; <kbd>Esc</kbd> always does. If <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> is taken by a program you run in your terminals, bind another key. Avoid <code>cmd</code> (not on Linux or Windows) and <code>ctrl-alt</code> (AltGr on some Windows keyboards).</p>
 
 <h2 id="rename">Name clash</h2>
 <p>If a mod called <code>attention-picker</code> already exists, do not overwrite it. Copy this one under another name, for example <code>agents-waiting</code>, and change three places: the folder name, the <code>HOME</code> constant at the top of <code>main.js</code> (it is the folder path used to load the two icons), and the name in your <code>keys.json</code> line (<code>mod.open:agents-waiting</code>). Herdr's <code>mod.clone</code> command, run on an installed mod, rewrites that mod's own <code>mods/&lt;name&gt;/</code> asset paths for the new name; check the <code>HOME</code> constant afterwards.</p>
@@ -79,9 +82,26 @@ ask me before replacing any key I already use. Then run herdr-app check on the m
 <li>Optional: the mod leaves behind one value in Herdr's shared state, <code>attention.sort</code> (your chosen sort), and its first-seen times in its local storage (key <code>attention.seen</code>, kept per mod copy). Nothing reads them once the mod is gone.</li>
 </ol>
 
+<h2 id="verification">Verification status</h2>
+<p>What has and has not been seen. The original mod ran in the author's Herdr on macOS (0.1.12). Everything added since then passed <code>herdr-app check</code> and the unit tests, which cover the pure code and run the view under Node against stand-ins for Herdr's modules. None of it has been watched in a live window, and nothing has been run on Linux or Windows. Rows below are what a first observer can settle; when one is seen, it moves to "observed on &lt;OS&gt;, Herdr &lt;version&gt;".</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Not yet observed"><table>
+<thead><tr><th scope="col">Not yet observed</th><th scope="col">How to check in 30 seconds</th></tr></thead>
+<tbody>
+<tr><td>The key closes the dialog while the search box has focus.</td><td>Open with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>, press it again. If it stays open, <kbd>Esc</kbd> closes it, and the key does not reach the mod from the search box.</td></tr>
+<tr><td><kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> change the sort while the search box has focus.</td><td>Open it and press <kbd>Tab</kbd>: the "Sort" pill at the top right should change from Recent to Oldest. If focus moves instead, the key is swallowed by the input; click the pill.</td></tr>
+<tr><td>The first-seen times in <code>localStorage</code> survive a reload.</td><td>Open the dialog with an agent that has no time shown from another source, close it, restart Herdr, open it again: the time should keep counting, not restart at "&lt;1m".</td></tr>
+<tr><td>What <code>hc read &lt;address&gt; --lines 60</code> returns: the screen plus 60 lines of history.</td><td>In a terminal run <code>hc read &lt;address&gt; --lines 60</code> and <code>hc read &lt;address&gt;</code> for the same agent and compare the line counts (<code>hc read --help</code> describes <code>--lines</code>).</td></tr>
+<tr><td>The unit of a tab's <code>changed_at</code> and what it marks.</td><td>Note when an agent in a tab of its own went blocked, then open the dialog: its time should match your wall clock.</td></tr>
+<tr><td>Polling stops when the dialog closes.</td><td>With a blocked agent waiting, close the dialog and watch for <code>hc read</code> calls with a process monitor: none should start. It is written so (the poll lives in the dialog's own view), but nobody has watched.</td></tr>
+<tr><td>The palette entry for <code>mod.open</code>.</td><td>Open the command palette, search "mod.open" or "Open mod", and see whether it asks for a name.</td></tr>
+<tr><td>Linux and Windows.</td><td>Install on that system and open the dialog; A CI definition for macOS, Linux and Windows is in <code>scripts/ci.workflow.yml</code>; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked.</td></tr>
+</tbody>
+</table></div>
+
 </main>
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
 <p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
 </footer>
 </body>

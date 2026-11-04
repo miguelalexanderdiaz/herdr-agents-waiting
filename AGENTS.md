@@ -2,11 +2,15 @@
 
 For AI agents that install, adapt, test or edit this repository. Humans: start with [README.md](README.md).
 
+If you are a round agent working on this repo: read `plans/round-*/SUMMARY.md` (what was decided and what is open) and
+the shared board named in your task before you change anything.
+
 ## What this repo is
 
 A single [Herdr](https://herdr.dev) app mod, `mods/attention-picker` ("Agents waiting"): a dialog overlay listing the
 agents that need the person, then the finished ones, then every other agent grouped by space. Plain JavaScript run
-by Herdr's native GPUI toolkit: no DOM, no Node APIs, no network inside a mod.
+by Herdr's native GPUI toolkit: no DOM. Herdr gives mods `exec`, `fetch` and file access and does not sandbox
+them; this mod's own policy, checked by `scripts/validate.mjs`, is to use none of them besides one `hc read` call.
 
 This repository is the canonical source of the mod. The portrait layout repository bundles a copy that is synced
 from here after each round (see "Syncing the portrait layout").
@@ -21,7 +25,7 @@ from here after each round (see "Syncing the portrait layout").
 | `keys.json` | the key the mod expects: `ctrl-shift-a` to `mod.open:attention-picker` |
 | `RECIPE.md`, `preview.png` | the brief and illustration Herdr's sharing format asks for |
 | `tests/` | `node:test` tests of the pure modules |
-| `scripts/` | `validate.mjs`, `privacy-scan.mjs`, `check-docs.mjs`, `check-local.mjs` |
+| `scripts/` | `validate.mjs`, `privacy-scan.mjs`, `check-docs.mjs`, `check-local.mjs` (the one-shot gate that runs all of them), `ci.workflow.yml` |
 | `docs/` | the GitHub Pages site (plain HTML and CSS) |
 | `plans/round-N/` | each improvement round's plan, role logs and summaries |
 
@@ -38,16 +42,23 @@ Follow Herdr's "Layouts and mods other people made" steps.
      kept in memory; nothing is stored or sent.
    - stores in its own local storage (key `attention.seen`) a map from agent address to the time it was first seen in its
      status. No screen text. It also writes the shared value `attention.sort`.
-   - does not use the network, `exec`, or any file outside its folder, and sends no input to terminals.
+   - does not use the network, `exec`, or any file outside its folder, and sends no input to terminals. Say it as
+     this mod's policy, not as a Herdr rule: Herdr would let a mod do all of that, and only `scripts/validate.mjs`
+     and the `rg` commands in the claim map below hold this one to it.
 2. Read `RECIPE.md` and every file in `mods/attention-picker/` before writing anything.
-3. Copy `mods/attention-picker/` to `<herdr home>/mods/attention-picker/`. **Never overwrite.** If that name is taken
-   (theirs or Herdr's), copy it under another name and change three places: the folder, the `HOME` constant at the
-   top of `main.js`, and the name in the `keys.json` entry. Do not copy `RECIPE.md` or `preview.png` into the home. Herdr's `mod.clone` rewrites a mod's own `mods/<name>/` paths when it
-   duplicates an installed mod; after any rename check `HOME` yourself.
-4. Merge `keys.json` into the person's: add `ctrl-shift-a` to `global` and `terminal`. If they already use that key,
-   ask which key to use. Never replace a key without asking.
-5. Run `herdr-app check <absolute path of the installed mod folder>`. It must pass. It only renders once and does
-   not run later timers or reads, so tell the person to press the key and look.
+3. Copy the whole folder `mods/attention-picker/` (`main.js` imports `logic.js` and `ask.js`; both SVGs are
+   loaded) to `<herdr home>/mods/attention-picker/`. **Never overwrite.** If that name is taken (theirs or Herdr's),
+   copy it under another name and change three places: the folder, the `HOME` constant at the top of `main.js`, and
+   the name in the `keys.json` entry. Do not copy `RECIPE.md` or `preview.png` into the home. Herdr's `mod.clone`
+   rewrites a mod's own `mods/<name>/` paths when it duplicates an installed mod; after any rename check `HOME`
+   yourself. The home is `~/.config/herdr-app` unless `HERDR_APP_HOME` says otherwise (`herdr-app --help`).
+4. Merge `keys.json` into the person's: add `ctrl-shift-a` to `global` and `terminal`. Both are needed: a focused
+   terminal uses the more specific `terminal` section (Herdr's AGENTS.md), and a `layout:<name>` section can
+   override both, so a conflicting `ctrl-shift-a` may sit there. If they already use that key, ask which key to use.
+   Never replace a key without asking.
+5. Run `herdr-app check <absolute path of the installed mod folder>`. It must pass. It only renders once, does
+   not run later timers or reads, and passes a renamed folder with a wrong `HOME`, so tell the person to press the
+   key and look.
 6. Do not edit the person's live Herdr home beyond steps 3 and 4: Herdr reloads on every save.
 
 ## Adapting it
@@ -67,12 +78,15 @@ npm test                                            # node --test: logic.js and 
 node scripts/validate.mjs                           # structure, JSON, contract, capabilities
 node scripts/privacy-scan.mjs                       # no personal data in the tree or the history
 node scripts/check-docs.mjs                         # docs links, Pages assets, no external origins
+node scripts/check-local.mjs                        # the one-shot gate: all of the above plus herdr-app check
 herdr-app check <absolute path to mods/attention-picker>   # Herdr validates the mod (needs the desktop app)
 ```
 
-Use `npm test` or plain `node --test`. Do not pass the folder (`node --test tests/`): on Node 26.5 (the version it was checked
-on) a directory argument is loaded as a module and fails. CI runs the first four on macOS, Linux and Windows; `herdr-app check` is a
-local gate because it is the desktop binary.
+Use `npm test` or plain `node --test`. Do not pass the folder (`node --test tests/`): on Node 22.14 and 26.5 (the
+versions it was run on) a directory argument is loaded as a module and fails. `package.json` declares Node `>=22`;
+older Node was never tried. A CI definition for macOS, Linux and Windows is in `scripts/ci.workflow.yml`; it is not
+enabled until the owner installs it (the token that pushes this repo cannot write `.github/workflows/`). Until a run
+is green, treat Linux and Windows as unchecked. `herdr-app check` is a local gate because it is the desktop binary.
 
 Do not drive the running app while testing: no `herdr-app do`, `shot` or `status`, and do not start a second app.
 `herdr-app check` writes `gpui-kit.d.ts` and `jsconfig.json` into the mod folder; they are git-ignored. Never
@@ -83,7 +97,12 @@ commit them.
 - Herdr reloads a mod the moment a file in its folder is saved. In the live home that shows on the person's screen
   immediately. Edit a copy.
 - Mods are JavaScript on GPUI. Never keep a `cx` for later use; do not use `setTimeout` or `setInterval` (use
-  `cx.timer`); no top-level `await`; no `fetch`, no Node modules.
+  `cx.timer`); no top-level `await`. This mod also does not use `fetch`, `exec` or file access (its policy;
+  `scripts/validate.mjs` fails on them).
+- Herdr keeps a hidden copy's timers running, so a poll must be gentle. This mod's poll starts in the dialog's
+  `init` and nowhere else; do not add a background poll.
+- A save that does not load keeps the old build running and shows only in `herdr-app status`, which you may not run
+  here. After any edit, your gates are `herdr-app check` and reading your own diff.
 - The view class must not define a `close` method: Herdr uses `close(cx)` as its cleanup hook. The mod closes itself
   with `dismiss()`, which calls `closeOverlay(props().overlay)` (or the `overlay.close` command when there is no id).
 - `svg()` and image paths are relative to the Herdr home, so they are `mods/attention-picker/<file>`. Installing under
@@ -93,6 +112,8 @@ commit them.
 - Unknown shared values must degrade: `attention.sort` outside `recent|oldest|space` reads as `recent`; `agents.since`
   and `space.colors` may be missing or malformed.
 - Mod `localStorage` is per mod copy. Wrap every access in `try/catch`; it can be absent or throw.
+- Shared state is saved to `shared.json` by Herdr, so `attention.sort` survives restarts and an `agents.since` left by
+  a layout can be stale and still win.
 - `herdr-app check` does not run deferred rows or later async states. Review those by reading the code.
 
 ## Do not break (other setups depend on it)
@@ -106,6 +127,7 @@ The portrait layout bundles this mod and opens it from its own bar. Keep these e
 | Shared `attention.sort` | read and written; `recent`, `oldest` or `space`; anything else reads as `recent` |
 | Shared `agents.since` | read only; `{ [address]: epoch ms }`; wins over every other time source; never written by this mod |
 | Shared `space.colors` | read only; `{ [space id]: "ansiN" or "#rrggbb" }` |
+| Prop `overlay` | supplied by Herdr; the mod closes itself with `closeOverlay(props().overlay)` and falls back to the `overlay.close` command when it is missing |
 | Command | `agent.focus` with `{ terminal: address }` (and `overlay.close`, only if `props().overlay` is missing) |
 
 Adding a prop or shared key is a change to this table and needs a note in [CHANGELOG.md](CHANGELOG.md) and on the
@@ -153,7 +175,25 @@ Run from the repository root. Each command should print what the claim says.
 
 ## Known limits
 
-- Not run in Herdr on Linux or Windows; CI covers the pure modules only.
+- Not run in Herdr on Linux or Windows. The CI definition (`scripts/ci.workflow.yml`) is not enabled yet; unit tests
+  of the pure modules are the only thing known to run there.
 - Status times from the local first-seen record are estimates: the dialog cannot observe changes while closed.
 - Previews are only tested on Claude Code style screens (see the fixtures in `tests/ask.test.mjs`).
-- A shared `agents.since` left behind by a layout you stopped using can be stale and still wins. Deferred.
+- A shared `agents.since` left behind by a layout you stopped using can be stale and still win; only a partial guard
+  exists (see the code-review notes in the latest `plans/round-*/`).
+
+## Verification status
+
+The original mod ran in the author's Herdr on macOS (0.1.12). Later changes passed `herdr-app check` and the unit
+tests; none were watched in a live window. Do not write "works" or "run in Herdr" about them. Not yet observed
+(the same table, with 30-second checks, is in [docs/install.html](docs/install.html#verification)):
+
+- the key closes the dialog while the search box has focus (`Esc` always does);
+- `Tab` / `Shift+Tab` reach the dialog while the search box has focus;
+- `localStorage` survives a reload;
+- `hc read --lines 60` returns the screen plus 60 lines of history; the unit and meaning of a tab's `changed_at`;
+- polling stops when the dialog closes;
+- the command palette entry for `mod.open`;
+- anything on Linux or Windows.
+
+When someone observes one, change the row to "observed on <OS>, Herdr <version>" in the README and the docs page.

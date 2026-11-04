@@ -22,11 +22,14 @@ npm test                          # same as: node --test   (Node 22 or newer, no
 node scripts/validate.mjs         # structure, JSON, compatibility contract, capability report
 node scripts/privacy-scan.mjs     # personal data in the tree and in the history
 node scripts/check-docs.mjs       # docs links, Pages assets, no external origins
+node scripts/check-local.mjs      # all of the above in one go, then herdr-app check if it is installed
 herdr-app check /absolute/path/to/your/clone/mods/attention-picker
 ```
 
-The first four also run in CI on macOS, Linux and Windows. `herdr-app check` needs the desktop app, so it is a local
-gate: run it on every change to `mods/attention-picker` and say so in your pull request. It validates the mod and
+Run `npm test`, never `node --test tests/` (a folder argument fails on Node 22 and later). A CI definition that runs
+the first four on macOS, Linux and Windows is in `scripts/ci.workflow.yml`; it is not enabled until the owner
+installs it, so until a run is green treat Linux and Windows as unchecked. `herdr-app check` needs the desktop app,
+so it is a local gate: run it on every change to `mods/attention-picker` and say so in your pull request. It validates the mod and
 renders it once; it does not run later timers or screen reads, so try the dialog in the app too if you can. Do not
 use `herdr-app do`, `shot` or `status` from scripts or automation, and never start a second app.
 
@@ -45,7 +48,8 @@ them.
    terminals or windows in any file, screenshot, fixture or commit message. `node scripts/privacy-scan.mjs` catches the
    common cases but not all of them.
 5. **The privacy statement stays true.** The mod reads screen text with `hc read`, keeps nothing of it, uses no network
-   and no `exec`. A change that alters that must update the Privacy sections of README, AGENTS.md and RECIPE.md.
+   and no `exec`. Herdr itself would allow all of that and more, so this is the mod's own policy, held by
+   `scripts/validate.mjs`. A change that alters it must update the Privacy sections of README, AGENTS.md and RECIPE.md.
 6. **Keep it small.** No dependencies, no build step. The mod is plain JavaScript.
 
 ## Commits and pull requests
@@ -59,6 +63,6 @@ them.
 Open an issue with your Herdr version (`herdr-app --version`), your OS, what you pressed and what you saw. Do not paste
 terminal contents you would not want public.
 
-## Licence
+## License
 
 By contributing you agree your work is licensed under Apache-2.0 (see [LICENSE](LICENSE)).
