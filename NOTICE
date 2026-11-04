@@ -8,9 +8,20 @@ This mod only uses Herdr's public mod API (the "herdr" and "gpui-kit" modules a
 mod can import) and is not a copy of any Herdr file.
 
 Third-party code: none is bundled.
-Third-party assets: none. The two icons in mods/attention-picker (spinner.svg,
-search.svg) and the preview illustration (preview.png, drawn from
-scripts/preview/preview.svg) were made for this project.
+Third-party assets: none bundled. The two icons in mods/attention-picker
+(spinner.svg, search.svg) and the preview illustration (preview.png, drawn from
+scripts/preview/preview.svg) were made for this project. The illustration is
+text drawn in the first font the renderer finds from this list in
+scripts/preview/preview.svg: Geist, Inter, Segoe UI, DejaVu Sans, Liberation Sans,
+Arial, then any sans-serif. Which one it was is not recorded in the PNG. Geist,
+Inter, DejaVu Sans and Liberation Sans are open fonts; Segoe UI and Arial are
+system fonts that are not bundled or distributed here, only rendered into the
+picture. A real screenshot replaces the illustration before the repository is
+published (see .github/PUBLISH-CHECKLIST.md).
+
+Copies of the mod folder: keep the "SPDX-License-Identifier: Apache-2.0" and
+copyright lines at the top of main.js, logic.js and ask.js, and ship the LICENSE
+file with a bundled copy (a layout that includes the mod, for example).
 
 Development tools used outside the shipped mod (not distributed with it):
 Node.js (test runner), GitHub Actions.

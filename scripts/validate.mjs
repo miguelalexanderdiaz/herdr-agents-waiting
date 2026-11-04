@@ -6,6 +6,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { codeLines, has, isBinary, read, reporter, repoFiles, rootFromArgs } from "./lib.mjs";
 import { readFileSync } from "node:fs";
+import { analyzeModCode, checkModJson, EXEC_RE, FILE_RE, NETWORK_RE, SPDX_LINE } from "./modrules.mjs";
 
 const root = rootFromArgs();
 const r = reporter("validate");
@@ -22,8 +23,6 @@ export const CONTRACT = {
   commands: ["agent.focus"],
 };
 const FOLDER = "attention-picker";
-const PLACES = ["right", "left", "top", "bottom", "none"];
-const KINDS = ["dialog", "popup", "window"];
 const RECIPE_HEADINGS = ["What you see", "How it behaves", "Built from", "Watch out", "Done when"];
 const MAX_FILE = 1024 * 1024;
 const MAX_PREVIEW = 600 * 1024;
@@ -38,8 +37,63 @@ for (const f of files.filter((f) => f.endsWith(".json"))) {
 for (const f of ["LICENSE", "NOTICE", "RECIPE.md", "preview.png", "keys.json", ".gitignore", ".gitattributes"]) {
   if (!has(root, f)) r.fail(`missing ${f}`);
 }
-if (!has(root, ".github/workflows/ci.yml")) (isCI ? r.fail : r.note)("no .github/workflows/ci.yml" + (isCI ? "" : " (warning: pushing a workflow file needs a token with the workflow scope; see .github/PUBLISH-CHECKLIST.md)"));
 if (!has(root, "README.md")) (isCI ? r.fail : r.note)("README.md is missing" + (isCI ? "" : " (warning: the documentation role adds it)"));
+
+// ---- 2b. the CI definition (scripts/ci.workflow.yml) and, once the owner installs it, its copy
+// No YAML parser (zero dependencies): the file is small and written in one fixed style, so this is line matching.
+export const CI_FILE = "scripts/ci.workflow.yml";
+export const CI_INSTALLED = ".github/workflows/ci.yml";
+export function lintWorkflow(text, exists, fail, name = CI_FILE) {
+  const lines = text.split(/\r?\n/);
+  const code = lines.filter((l) => !/^\s*#/.test(l));
+  const body = code.join("\n");
+  for (const os of ["ubuntu-latest", "windows-latest", "macos-latest"]) {
+    if (!new RegExp(`\\b${os}\\b`).test(body)) fail(`${name}: the matrix has no ${os}; the repository promises Linux, Windows and macOS`);
+  }
+  const node = /^\s*node:\s*\[([^\]]*)\]/m.exec(body);
+  if (!node || !/\b22\b/.test(node[1]) || !/\b24\b/.test(node[1])) fail(`${name}: the node matrix must list 22 and 24`);
+  const perm = /^permissions:\s*\n((?:[ \t]+\S.*\n?)+)/m.exec(body + "\n");
+  if (!perm) fail(`${name}: no top-level 'permissions:' block (least privilege: contents: read)`);
+  else {
+    if (!/^\s+contents:\s*read\s*$/m.test(perm[1])) fail(`${name}: permissions must include 'contents: read'`);
+    if (/:\s*write\b/.test(perm[1])) fail(`${name}: permissions grant write access; this workflow only reads`);
+  }
+  if (/permissions:\s*write-all|permissions:\s*read-all/.test(body)) fail(`${name}: permissions must list scopes, not write-all/read-all`);
+  if (/\bpull_request_target\b/.test(body)) fail(`${name}: pull_request_target runs fork code with secrets; do not use it`);
+  const uses = [...body.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)].map((m) => m[1]);
+  if (!uses.length) fail(`${name}: no 'uses:' step (checkout is expected)`);
+  for (const u of uses) {
+    if (/^\.\//.test(u)) continue;
+    if (!/^[\w.-]+\/[\w./-]+@(v\d+(\.\d+){0,2}|[0-9a-f]{40})$/.test(u)) fail(`${name}: '${u}' must be pinned to a version tag (vN) or a full commit SHA`);
+  }
+  if (uses.some((u) => u.startsWith("actions/checkout@")) && !/persist-credentials:\s*false/.test(body)) fail(`${name}: actions/checkout needs 'persist-credentials: false'`);
+  if (!/^\s*workflow_dispatch:/m.test(body)) fail(`${name}: no workflow_dispatch trigger (the owner needs a way to start a run by hand)`);
+  // Every script a step runs must exist in the repository.
+  for (const m of body.matchAll(/\bnode\s+(\S+\.(?:mjs|js|cjs))/g)) {
+    if (!exists(m[1])) fail(`${name}: runs '${m[0]}' but ${m[1]} does not exist`);
+  }
+  for (const m of body.matchAll(/^\s*run:\s*(.*)$/gm)) {
+    const cmd = m[1].trim();
+    if (!cmd || cmd === "|" || cmd === ">" || cmd.startsWith("echo ")) continue;
+    if (/^npm test$/.test(cmd)) { if (!exists("package.json")) fail(`${name}: runs npm test but package.json does not exist`); continue; }
+    if (!/^node\s/.test(cmd)) fail(`${name}: unexpected run command '${cmd.slice(0, 40)}' (only node scripts/*.mjs and npm test are allowed; extend lintWorkflow on purpose)`);
+  }
+  for (const need of ["scripts/validate.mjs", "scripts/privacy-scan.mjs", "scripts/check-docs.mjs"]) {
+    if (!body.includes(`node ${need}`)) fail(`${name}: does not run ${need}`);
+  }
+  if (!/\bnpm test\b/.test(body)) fail(`${name}: does not run npm test`);
+}
+if (!has(root, CI_FILE)) r.fail(`missing ${CI_FILE} (the CI definition; step 0 of .github/PUBLISH-CHECKLIST.md installs it)`);
+else {
+  const ci = read(root, CI_FILE);
+  lintWorkflow(ci, (f) => has(root, f), (m) => r.fail(m));
+  if (has(root, CI_INSTALLED)) {
+    if (read(root, CI_INSTALLED) !== ci) r.fail(`${CI_INSTALLED} differs from ${CI_FILE}; they must be byte-equal (edit ${CI_FILE}, then copy it)`);
+    else r.note(`CI: ${CI_INSTALLED} is installed and equal to ${CI_FILE}`);
+  } else {
+    r.note(`CI: defined in ${CI_FILE}, not installed (the owner copies it to ${CI_INSTALLED}; see .github/PUBLISH-CHECKLIST.md step 0)`);
+  }
+}
 
 // ---- 3. this is a mod repo: mods/<name>/ only, no layouts/
 if (files.some((f) => f.startsWith("layouts/"))) r.fail("layouts/ exists: this is a mod repo (topic herdr-mod); a layout needs its own checks");
@@ -50,18 +104,7 @@ for (const m of mods) {
   const mj = json[`mods/${m}/mod.json`];
   if (!mj) { r.fail(`mods/${m}/mod.json is missing or invalid`); continue; }
   if (typeof mj !== "object" || Array.isArray(mj)) { r.fail(`mods/${m}/mod.json must be an object`); continue; }
-  if (mj.place !== undefined && !PLACES.includes(mj.place)) r.fail(`mods/${m}/mod.json: place "${mj.place}" is not one of ${PLACES.join("|")}`);
-  if (mj.size !== undefined && typeof mj.size !== "number") r.fail(`mods/${m}/mod.json: size must be a number`);
-  if (mj.focusable !== undefined && typeof mj.focusable !== "boolean") r.fail(`mods/${m}/mod.json: focusable must be a boolean`);
-  if (mj.title !== undefined && typeof mj.title !== "string") r.fail(`mods/${m}/mod.json: title must be a string`);
-  const o = mj.overlay;
-  if (o !== undefined) {
-    if (typeof o !== "object" || o === null) r.fail(`mods/${m}/mod.json: overlay must be an object`);
-    else {
-      if (o.kind !== undefined && !KINDS.includes(o.kind)) r.fail(`mods/${m}/mod.json: overlay.kind "${o.kind}" is not one of ${KINDS.join("|")}`);
-      for (const k of ["width", "height"]) if (o[k] !== undefined && typeof o[k] !== "number") r.fail(`mods/${m}/mod.json: overlay.${k} must be a number`);
-    }
-  }
+  checkModJson(mj, `mods/${m}/mod.json`, (msg) => r.fail(msg));
 }
 // Herdr writes these into every mod folder; they must never be committed.
 for (const f of files) {
@@ -101,6 +144,13 @@ if (has(root, "LICENSE")) {
 }
 if (has(root, "NOTICE") && !/Copyright\s+\d{4}/.test(read(root, "NOTICE"))) r.fail("NOTICE has no 'Copyright <year>' line");
 
+if (json["package.json"]) {
+  const pk = json["package.json"];
+  if (pk.license !== "Apache-2.0") r.fail('package.json: "license" must be "Apache-2.0" (the same as LICENSE)');
+  if (!pk.engines?.node) r.fail('package.json: "engines.node" is missing (the tests need Node 22 or newer)');
+  if (pk.scripts?.test !== "node --test") r.fail('package.json: scripts.test must stay "node --test" (it finds tests/ and scripts/ tests by name; a directory argument fails on Node 22+)');
+}
+
 // ---- 6. size limits and line endings
 for (const f of files) {
   const size = statSync(join(root, f)).size;
@@ -139,7 +189,7 @@ if (has(root, "RECIPE.md")) {
 }
 
 // ---- 9. mod code: compatibility contract, foreign mods, capability report
-const report = { network: [], exec: [], hc: [], storage: [], fileWrite: [], outside: [] };
+const report = { network: [], exec: [], hc: [], storage: [], fileWrite: [], outside: [], imports: new Set(), herdrNames: new Set() };
 for (const m of mods) {
   const jsFiles = files.filter((f) => f.startsWith(`mods/${m}/`) && f.endsWith(".js"));
   const all = jsFiles.map((f) => read(root, f)).join("\n");
@@ -158,16 +208,23 @@ for (const m of mods) {
     if (/setShared\(\s*["']agents\.since["']/.test(all)) r.fail(`mods/${m}: agents.since belongs to the portrait layout; this mod must never write it`);
   }
   for (const f of jsFiles) {
-    for (const { n, text } of codeLines(read(root, f))) {
+    const src = read(root, f);
+    const cl = codeLines(src);
+    const a = analyzeModCode(cl.map((l) => l.text).join("\n"), f);
+    for (const p of a.problems) r.fail(p);
+    for (const e of a.imports) report.imports.add(e.spec);
+    for (const n of a.herdr) report.herdrNames.add(n);
+    if (!src.split(/\r?\n/, 3).some((l) => l.trim() === SPDX_LINE)) r.fail(`${f}: the first 3 lines must include "${SPDX_LINE}" (a copied mod folder has to carry its licence)`);
+    for (const { n, text } of cl) {
       const at = `${f}:${n}`;
-      if (/\bfetch\s*\(|new\s+(XMLHttpRequest|WebSocket|EventSource)\b|sendBeacon\s*\(/.test(text)) report.network.push(at);
+      if (NETWORK_RE.test(text)) report.network.push(at);
       if (/https?:\/\//.test(text) && !/^\s*import\b/.test(text)) report.network.push(at + " (url)");
       if (/^\s*import\b.*["']https?:/.test(text)) report.network.push(at + " (remote import)");
       // cx.spawn is Herdr's async task helper, not a program launch; only exec, execFile and child_process count.
-      if (/\bexec\s*\(|\bexecFile\s*\(|child_process/.test(text)) report.exec.push(at);
+      if (EXEC_RE.test(text)) report.exec.push(at);
       if (/\bhc\s*\(/.test(text)) report.hc.push(at);
       if (/\b(localStorage|sessionStorage|indexedDB)\b/.test(text)) report.storage.push(at);
-      if (/\b(writeTextFile|writeFile|readTextFile|readFile|readDir)\s*\(/.test(text)) report.fileWrite.push(at);
+      if (FILE_RE.test(text)) report.fileWrite.push(at);
       if (/["'`](\.\.\/|~\/|\/etc\/|[A-Za-z]:\\)/.test(text)) report.outside.push(at);
       // Another mod's name in code (not in a comment) is a dependency on something a stranger lacks.
       if (/workspace-chrome|bar-strip|portrait/.test(text)) r.fail(`${at}: names another mod/layout in code (allowed on comment lines only)`);
@@ -199,6 +256,7 @@ if (report.hc.length) {
 }
 // Capability report, always printed, so a reviewer sees what the mod reaches.
 const n = (a) => `${a.length} place${a.length === 1 ? "" : "s"}`;
+r.note(`imports: ${[...report.imports].sort().join(", ")}; from herdr: ${[...report.herdrNames].sort().join(", ")}`);
 r.note(`capabilities: network ${n(report.network)}, exec ${n(report.exec)}, hc ${n(report.hc)}, localStorage ${n(report.storage)}, file access ${n(report.fileWrite)}`);
 
 // ---- 9b. numbers RECIPE.md quotes from the code stay equal to the code
@@ -212,6 +270,42 @@ if (has(root, `mods/${FOLDER}/main.js`) && has(root, "RECIPE.md")) {
   const home = /\bconst HOME\s*=\s*"([^"]+)"/.exec(main);
   if (!home) r.fail("main.js has no 'const HOME = \"mods/<folder>\"' (the one place the folder name is written)");
   else if (home[1] !== `mods/${FOLDER}`) r.fail(`main.js HOME is "${home[1]}", expected "mods/${FOLDER}"`);
+}
+
+// ---- 9c. the sentences RECIPE.md writes from the code (the twelve a reader could get wrong)
+// Each row: what RECIPE says (a regex with capture groups), where the code says it, and how to read it.
+// `code` is a regex over that file with the same captures, or a function from RECIPE's captures to a
+// string that must appear in the file. A claim that cannot be found on either side fails by name.
+export const CLAIMS = [
+  { name: "row heights", rec: /head (\d+), agent (\d+), waiting (\d+), rule (\d+), earlier (\d+)/, file: `mods/${FOLDER}/main.js`, code: /head:\s*(\d+),\s*agent:\s*(\d+),\s*waiting:\s*(\d+),\s*sep:\s*(\d+),\s*earlier:\s*(\d+)/ },
+  { name: "dialog width", rec: /A dialog, (\d+)px wide/, file: `mods/${FOLDER}/mod.json`, code: /"width":\s*(\d+)/ },
+  { name: "spinner period", rec: /turning every (\d+)ms/, file: `mods/${FOLDER}/main.js`, code: /\.spin\((\d+)\)/ },
+  { name: "storage key", rec: /`localStorage` key `([\w.]+)`/, file: `mods/${FOLDER}/main.js`, code: /const SEEN_KEY = "([^"]+)"/ },
+  { name: "longest preview", rec: /at most (\d+) characters/, file: `mods/${FOLDER}/ask.js`, code: /MAX_LEN = (\d+)/ },
+  { name: "message markers", rec: /starts with `(.)`, `(.)` or `(.)`/, file: `mods/${FOLDER}/ask.js`, code: /MARKERS = \["(.)", "(.)", "(.)"\]/ },
+  { name: "key hint", rec: /key hint reads "([^"]+)"/, file: `mods/${FOLDER}/main.js`, code: (hint) => `"${hint}"` },
+  { name: "search placeholder", rec: /placeholder "([^"]+)"/, file: `mods/${FOLDER}/main.js`, code: (text) => `placeholder: "${text}"` },
+  { name: "sort labels", rec: /\("([^"]+)", "([^"]+)" or "([^"]+)"\)/, file: `mods/${FOLDER}/main.js`, code: /recent: "([^"]+)", oldest: "([^"]+)", space: "([^"]+)"/ },
+  { name: "empty-state strings", rec: /says "(No agents running)" and "(Start one and it will show here)"/, file: `mods/${FOLDER}/logic.js`, code: (title, body) => `title: "${title}", body: "${body}"` },
+  { name: "stored entries", rec: /capped at (\d+) entries/, file: `mods/${FOLDER}/logic.js`, code: /const MAX_SEEN = (\d+)/ },
+  { name: "fold age", rec: /whose status began more than (\d+) hours ago/, file: `mods/${FOLDER}/logic.js`, code: /const DAY = (\d+) \* 3600 \* 1000/ },
+];
+if (has(root, "RECIPE.md")) {
+  const rec = read(root, "RECIPE.md");
+  for (const c of CLAIMS) {
+    const said = c.rec.exec(rec);
+    if (!said) { r.fail(`RECIPE.md: the sentence for "${c.name}" is gone or reworded (expected ${c.rec})`); continue; }
+    if (!has(root, c.file)) { r.fail(`${c.file} is missing (RECIPE.md "${c.name}" is checked against it)`); continue; }
+    const code = read(root, c.file);
+    const mine = said.slice(1);
+    if (typeof c.code === "function") {
+      if (!code.includes(c.code(...mine))) r.fail(`RECIPE.md "${c.name}" says ${JSON.stringify(mine)}, which ${c.file} does not contain`);
+    } else {
+      const found = c.code.exec(code);
+      if (!found) r.fail(`${c.file}: cannot find the source of RECIPE.md "${c.name}" (${c.code})`);
+      else if (found.slice(1).join("|") !== mine.join("|")) r.fail(`RECIPE.md "${c.name}" says ${JSON.stringify(mine)} but ${c.file} has ${JSON.stringify(found.slice(1))}`);
+    }
+  }
 }
 
 // ---- 10. SVG assets: plain shapes, no scripts or external references, tinted by currentColor
