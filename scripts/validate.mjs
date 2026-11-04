@@ -193,8 +193,76 @@ if (has(root, "RECIPE.md")) {
   if (img >= 0 && firstH2 >= 0 && img > firstH2) r.fail("RECIPE.md: the preview image must come before '## What you see'");
 }
 
+// ---- 9a. what a mod's code may import and call (allow-lists, so an alias cannot get past them)
+// To allow something new: update RECIPE.md "What it reaches" and README "Privacy and permissions" FIRST,
+// then add it here, on purpose. Names, not behaviour, are what a script can check; this is a policy
+// check on the source, not a sandbox (Herdr does not sandbox mods).
+export const HERDR_NAMES = ["agents", "spaces", "run", "hc", "theme", "settings", "shared", "setShared", "props", "closeOverlay"];
+export const RUN_COMMANDS = ["agent.focus", "overlay.close"];
+export const HC_FIRST_ARG = "read";
+export const IMPORT_SPECIFIERS = ["./logic.js", "./ask.js", "gpui-kit", "gpui-base", "herdr"];
+export const SPDX_LINE = "// SPDX-License-Identifier: Apache-2.0";
+
+// Returns { imports: [{ spec, names: [{ imported, local }] }], problems: [string] } for one file's code
+// (comments already removed). Line numbers are not kept: the file name is enough to find a one-line finding.
+export function analyzeModCode(code, file = "file") {
+  const problems = [];
+  const imports = [];
+  const bad = (m) => problems.push(`${file}: ${m}`);
+  const importRe = /\bimport\b\s*(?:([\w$*{}\s,]*?)\s*\bfrom\s*)?(["'])([^"']+)\2/g;
+  for (const m of code.matchAll(importRe)) {
+    const clause = (m[1] ?? "").trim();
+    const entry = { spec: m[3], names: [] };
+    if (clause) {
+      const braces = /\{([^}]*)\}/.exec(clause);
+      if (/\*\s*as\b/.test(clause)) entry.namespace = true;
+      const dflt = clause.replace(/\{[^}]*\}/, "").replace(/,/g, " ").trim();
+      if (dflt && !entry.namespace) entry.default = dflt;
+      if (braces) {
+        for (const part of braces[1].split(",").map((x) => x.trim()).filter(Boolean)) {
+          const [imported, , local] = part.split(/\s+/);
+          entry.names.push({ imported, local: local ?? imported });
+        }
+      }
+    }
+    imports.push(entry);
+  }
+  for (const m of code.matchAll(/\bexport\b[^;\n]*?\bfrom\s*(["'])([^"']+)\1/g)) imports.push({ spec: m[2], names: [], reexport: true });
+  for (const e of imports) {
+    if (!IMPORT_SPECIFIERS.includes(e.spec)) bad(`imports "${e.spec}", which is not on the allow-list (${IMPORT_SPECIFIERS.join(", ")}). Update RECIPE.md "What it reaches" first, then IMPORT_SPECIFIERS in scripts/validate.mjs`);
+  }
+  if (/\bimport\s*\(/.test(code)) bad("dynamic import() is not allowed (it could load anything)");
+  if (/\brequire\s*\(/.test(code)) bad("require() is not allowed");
+  if (/\beval\s*\(|\bnew\s+Function\b|(^|[^.\w$])Function\s*\(/.test(code)) bad("eval / Function constructors are not allowed");
+  if (/\bglobalThis\s*\[|Reflect\s*\.\s*get\s*\(\s*globalThis|\bglobalThis\s*\.\s*(fetch|exec|process)\b|\bprocess\s*\./.test(code)) bad("reaching globals by name or by computed property is not allowed");
+  const local = {}; // imported name -> local names, for names from "herdr"
+  for (const e of imports.filter((x) => x.spec === "herdr")) {
+    if (e.namespace || e.default) bad('imports "herdr" as a namespace or default; list the names so they can be checked');
+    for (const n of e.names) {
+      if (!HERDR_NAMES.includes(n.imported)) bad(`imports "${n.imported}" from "herdr", which is not on the allow-list (${HERDR_NAMES.join(", ")}). Update RECIPE.md "What it reaches" first, then HERDR_NAMES in scripts/validate.mjs`);
+      (local[n.imported] ??= []).push(n.local);
+    }
+  }
+  const body = code.replace(importRe, " ");
+  const calls = (names, test, what) => {
+    for (const name of names) {
+      const esc = name.replace(/[$]/g, "\\$");
+      const at = new RegExp(`(?<![.\\w$])${esc}(?![\\w$])`, "g");
+      for (const m of body.matchAll(at)) {
+        const after = body.slice(m.index + m[0].length);
+        const call = /^\s*\(\s*([\s\S]{0,80})/.exec(after);
+        if (!call) { bad(`${what} is used as a value, not called directly; aliasing it would defeat the check`); continue; }
+        if (!test(call[1])) bad(`${what} is called with an argument that is not on the allow-list`);
+      }
+    }
+  };
+  calls(local.run ?? [], (a) => new RegExp(`^(["'])(${RUN_COMMANDS.map((c) => c.replace(".", "\\.")).join("|")})\\1\\s*[,)]`).test(a), `run() (only ${RUN_COMMANDS.join(" and ")} with a string literal)`);
+  calls(local.hc ?? [], (a) => new RegExp(`^\\[\\s*(["'])${HC_FIRST_ARG}\\1\\s*[,\\]]`).test(a), `hc() (only an array literal starting "${HC_FIRST_ARG}")`);
+  return { imports, problems, herdr: Object.keys(local).sort() };
+}
+
 // ---- 9. mod code: compatibility contract, foreign mods, capability report
-const report = { network: [], exec: [], hc: [], storage: [], fileWrite: [], outside: [] };
+const report = { network: [], exec: [], hc: [], storage: [], fileWrite: [], outside: [], imports: new Set(), herdrNames: new Set() };
 for (const m of mods) {
   const jsFiles = files.filter((f) => f.startsWith(`mods/${m}/`) && f.endsWith(".js"));
   const all = jsFiles.map((f) => read(root, f)).join("\n");
@@ -213,7 +281,14 @@ for (const m of mods) {
     if (/setShared\(\s*["']agents\.since["']/.test(all)) r.fail(`mods/${m}: agents.since belongs to the portrait layout; this mod must never write it`);
   }
   for (const f of jsFiles) {
-    for (const { n, text } of codeLines(read(root, f))) {
+    const src = read(root, f);
+    const cl = codeLines(src);
+    const a = analyzeModCode(cl.map((l) => l.text).join("\n"), f);
+    for (const p of a.problems) r.fail(p);
+    for (const e of a.imports) report.imports.add(e.spec);
+    for (const n of a.herdr) report.herdrNames.add(n);
+    if (!src.split(/\r?\n/, 3).some((l) => l.trim() === SPDX_LINE)) r.fail(`${f}: the first 3 lines must include "${SPDX_LINE}" (a copied mod folder has to carry its licence)`);
+    for (const { n, text } of cl) {
       const at = `${f}:${n}`;
       if (/\bfetch\s*\(|new\s+(XMLHttpRequest|WebSocket|EventSource)\b|sendBeacon\s*\(/.test(text)) report.network.push(at);
       if (/https?:\/\//.test(text) && !/^\s*import\b/.test(text)) report.network.push(at + " (url)");
@@ -254,6 +329,7 @@ if (report.hc.length) {
 }
 // Capability report, always printed, so a reviewer sees what the mod reaches.
 const n = (a) => `${a.length} place${a.length === 1 ? "" : "s"}`;
+r.note(`imports: ${[...report.imports].sort().join(", ")}; from herdr: ${[...report.herdrNames].sort().join(", ")}`);
 r.note(`capabilities: network ${n(report.network)}, exec ${n(report.exec)}, hc ${n(report.hc)}, localStorage ${n(report.storage)}, file access ${n(report.fileWrite)}`);
 
 // ---- 9b. numbers RECIPE.md quotes from the code stay equal to the code
