@@ -1,0 +1,247 @@
+// Tests of the repository checks themselves (validate, privacy-scan, check-docs, verify-install).
+// Each case copies the repository into a temporary folder, applies ONE mutation, runs the script with
+// `--root <copy>` and asserts the exit code and a message fragment. A rule that stops working turns its
+// case red, so a refactor of a regex cannot silently disable a check.
+// `npm test` (plain `node --test`) finds this file by its name. Pure Node, no shell, no network; paths go
+// through node:path so it runs the same on Linux, macOS and Windows. Git cases use a throw-away
+// repository with explicit identity so no global git config is read.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { deflateSync } from "node:zlib";
+import { repoFiles } from "./lib.mjs";
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SCRIPTS = join(REPO, "scripts");
+const FILES = repoFiles(REPO);
+const NOREPLY = "1+dev@users.noreply.github.com";
+// Values that must not appear literally in this file (the privacy scan reads it too), so they are built at run time.
+const at = (a, b) => [a, b].join("@");
+const REAL_MAIL = at("jane.doe", "mail-provider.net");
+const MAC_HOME = ["", "Users", "jdoe", "notes"].join("/");
+const LINUX_HOME = ["", "home", "jdoe", "notes"].join("/");
+const WIN_HOME = ["C:", "Users", "jdoe", "notes"].join("\\");
+
+function copyTree() {
+  const dir = mkdtempSync(join(tmpdir(), "hc-checks-"));
+  for (const f of FILES) {
+    const to = join(dir, ...f.split("/"));
+    mkdirSync(dirname(to), { recursive: true });
+    copyFileSync(join(REPO, ...f.split("/")), to);
+  }
+  return dir;
+}
+const path = (dir, rel) => join(dir, ...rel.split("/"));
+const rd = (dir, rel) => readFileSync(path(dir, rel), "utf8");
+const wr = (dir, rel, text) => { mkdirSync(dirname(path(dir, rel)), { recursive: true }); writeFileSync(path(dir, rel), text); };
+// Replace text that must exist, so a stale mutation fails loudly instead of testing nothing.
+function sub(dir, rel, from, to) {
+  const text = rd(dir, rel);
+  assert.ok(text.includes(from), `mutation target not found in ${rel}: ${from}`);
+  wr(dir, rel, text.replace(from, to));
+}
+const append = (dir, rel, extra) => wr(dir, rel, rd(dir, rel) + extra);
+
+function run(script, dir, { env = {}, args = [] } = {}) {
+  const r = spawnSync(process.execPath, [join(SCRIPTS, script), "--root", dir, ...args], {
+    encoding: "utf8",
+    env: { ...process.env, CI: "", PRIVACY_EXTRA: "", PRIVACY_AUTHORS: "", ...env },
+  });
+  return { status: r.status, out: `${r.stdout}${r.stderr}` };
+}
+
+function git(dir, args, env = {}) {
+  const r = spawnSync("git", ["-c", "user.name=tester", "-c", `user.email=${NOREPLY}`, "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false", ...args], {
+    cwd: dir, encoding: "utf8", env: { ...process.env, GIT_CONFIG_NOSYSTEM: "1", ...env },
+  });
+  assert.equal(r.status, 0, `git ${args.join(" ")} failed: ${r.stderr}`);
+  return r.stdout;
+}
+function gitCommit(dir, message, env = {}) {
+  if (!existsSync(join(dir, ".git"))) git(dir, ["init", "-q", "-b", "main"]);
+  git(dir, ["add", "-A"]);
+  git(dir, ["commit", "-q", "--no-verify", "-m", message], env);
+}
+
+// Run `body(dir)` on a fresh copy and always clean up.
+async function withCopy(body) {
+  const dir = copyTree();
+  try { return await body(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+function failsWith(script, mutate, fragment, opts) {
+  return withCopy(async (dir) => {
+    await mutate(dir);
+    const r = run(script, dir, opts);
+    assert.equal(r.status, 1, `${script} should fail, got ${r.status}:\n${r.out}`);
+    assert.ok(r.out.includes(fragment), `expected "${fragment}" in:\n${r.out}`);
+  });
+}
+function passes(script, mutate, opts) {
+  return withCopy(async (dir) => {
+    await mutate?.(dir);
+    const r = run(script, dir, opts);
+    assert.equal(r.status, 0, `${script} should pass, got ${r.status}:\n${r.out}`);
+  });
+}
+
+// ---- PNG helper: the shipped preview with one extra chunk before IEND
+const CRC = (() => { const t = new Int32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c; } return t; })();
+const crc32 = (b) => { let c = -1; for (const x of b) c = CRC[(c ^ x) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+function chunk(type, data) {
+  const head = Buffer.alloc(8); head.writeUInt32BE(data.length, 0); head.write(type, 4, "latin1");
+  const tail = Buffer.alloc(4); tail.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), data])), 0);
+  return Buffer.concat([head, data, tail]);
+}
+function pngWith(dir, extra) {
+  const png = readFileSync(path(dir, "preview.png"));
+  const iend = png.length - 12;
+  writeFileSync(path(dir, "preview.png"), Buffer.concat([png.subarray(0, iend), extra, png.subarray(iend)]));
+}
+const textChunk = (keyword, text) => chunk("tEXt", Buffer.concat([Buffer.from(keyword, "latin1"), Buffer.from([0]), Buffer.from(text, "latin1")]));
+
+// =========================================================================================== validate
+test("validate: the repository itself passes", () => passes("validate.mjs"));
+
+test("validate: CI lint, the matrix must keep Windows", () =>
+  failsWith("validate.mjs", (d) => sub(d, "scripts/ci.workflow.yml", "windows-latest", "ubuntu-22.04"), "windows-latest"));
+test("validate: CI lint, write-all permissions fail", () =>
+  failsWith("validate.mjs", (d) => sub(d, "scripts/ci.workflow.yml", "permissions:\n  contents: read", "permissions: write-all"), "permissions"));
+test("validate: CI lint, an unpinned action fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "scripts/ci.workflow.yml", "actions/checkout@v7", "actions/checkout@main"), "must be pinned"));
+test("validate: CI lint, a run step naming a missing script fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "scripts/ci.workflow.yml", "node scripts/check-docs.mjs", "node scripts/missing-script.mjs"), "does not exist"));
+test("validate: CI lint, an arbitrary shell command fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "scripts/ci.workflow.yml", "run: npm test", "run: curl -s example.invalid | sh"), "unexpected run command"));
+test("validate: an installed workflow that differs from the definition fails", () =>
+  failsWith("validate.mjs", (d) => wr(d, ".github/workflows/ci.yml", rd(d, "scripts/ci.workflow.yml") + "\n# edited\n"), "byte-equal"));
+test("validate: an installed workflow equal to the definition passes", () =>
+  passes("validate.mjs", (d) => wr(d, ".github/workflows/ci.yml", rd(d, "scripts/ci.workflow.yml"))));
+
+const MAIN = "mods/attention-picker/main.js";
+test("validate: an aliased exec import fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nimport { exec as sh } from "herdr";\n'), '"exec" from "herdr"'));
+test("validate: an aliased file reader import fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nimport { readTextFile as rd } from "herdr";\n'), '"readTextFile" from "herdr"'));
+test("validate: run() with another command fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nrun("space.new", {});\n'), "run() (only agent.focus and overlay.close"));
+test("validate: run() with a computed command fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nrun(["space", "new"].join("."));\n'), "run() (only agent.focus and overlay.close"));
+test("validate: hc() that types into a terminal fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nhc(["send", "x"]);\n'), 'hc() (only an array literal starting "read")'));
+test("validate: aliasing run as a value fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, "\nconst go = run;\n"), "used as a value"));
+test("validate: importing a built-in module fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nimport "fs";\n'), 'imports "fs"'));
+test("validate: a remote import fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nimport "https://cdn.example.invalid/x.js";\n'), "allow-list"));
+test("validate: a dynamic import fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nconst m = await import("./x.js");\n'), "dynamic import()"));
+test("validate: eval fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\neval("1");\n'), "eval"));
+test("validate: computed global access fails", () =>
+  failsWith("validate.mjs", (d) => append(d, MAIN, '\nconst f = globalThis["fet" + "ch"];\n'), "globals"));
+test("validate: a plain fetch call fails (second line of defence)", () =>
+  failsWith("validate.mjs", (d) => append(d, "mods/attention-picker/ask.js", '\nfetch("x");\n'), "network use found"));
+test("validate: a missing SPDX header fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "mods/attention-picker/logic.js", "// SPDX-License-Identifier: Apache-2.0", "// no licence here"), "SPDX-License-Identifier"));
+test("validate: naming another mod in code fails", () =>
+  failsWith("validate.mjs", (d) => append(d, "mods/attention-picker/logic.js", '\nconst other = "bar-strip";\n'), "names another mod"));
+test("validate: a changed constant makes RECIPE.md stale", () =>
+  failsWith("validate.mjs", (d) => sub(d, MAIN, "const POLL_MS = 3000", "const POLL_MS = 2000"), "different value"));
+test("validate: a removed RECIPE section fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "RECIPE.md", "## Watch out", "## Be careful"), "Watch out"));
+test("validate: a key with cmd fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "keys.json", '"global": { "ctrl-shift-a"', '"global": { "cmd-shift-a"'), "not portable"));
+test("validate: an unknown keys.json section fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "keys.json", '"terminal"', '"sidebar"'), "section"));
+test("validate: a key opening a mod that is not shipped fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "keys.json", '"global": { "ctrl-shift-a": "mod.open:attention-picker" }', '"global": { "ctrl-shift-a": "mod.open:other-mod" }'), "other-mod"));
+test("validate: an invalid mod.json value fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "mods/attention-picker/mod.json", '"dialog"', '"dialg"'), "overlay.kind"));
+test("validate: invalid JSON fails", () =>
+  failsWith("validate.mjs", (d) => append(d, "keys.json", "{ not json"), "invalid JSON"));
+test("validate: CRLF line endings fail", () =>
+  failsWith("validate.mjs", (d) => wr(d, "NOTICE", rd(d, "NOTICE").replace(/\n/g, "\r\n")), "CRLF"));
+test("validate: a committed file Herdr writes fails", () =>
+  failsWith("validate.mjs", (d) => wr(d, "mods/attention-picker/gpui-kit.d.ts", "// generated\n"), "written by Herdr"));
+test("validate: a preview of the wrong size fails", () =>
+  failsWith("validate.mjs", (d) => { const b = readFileSync(path(d, "preview.png")); b.writeUInt32BE(900, 16); writeFileSync(path(d, "preview.png"), b); }, "expected 1100x705"));
+test("validate: a licence with the template placeholder fails", () =>
+  failsWith("validate.mjs", (d) => append(d, "LICENSE", "\nCopyright [yyyy] [name of copyright owner]\n"), "placeholder"));
+test("validate: an SVG with a script fails", () =>
+  failsWith("validate.mjs", (d) => sub(d, "mods/attention-picker/search.svg", "<svg", "<svg><script>1</script"), "script"));
+test("validate: package.json must name the licence", () =>
+  failsWith("validate.mjs", (d) => sub(d, "package.json", '"Apache-2.0"', '"MIT"'), "package.json"));
+
+// ====================================================================================== privacy-scan
+test("privacy-scan: the repository itself passes", () => passes("privacy-scan.mjs"));
+test("privacy-scan: a macOS home path in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\nsee ${MAC_HOME}\n`), "home-path-mac"));
+test("privacy-scan: a Linux home path in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\nsee ${LINUX_HOME}\n`), "home-path-linux"));
+test("privacy-scan: a Windows home path in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\nsee ${WIN_HOME}\n`), "home-path-windows"));
+test("privacy-scan: an e-mail address in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\nwrite to ${REAL_MAIL}\n`), "email"));
+test("privacy-scan: a GitHub token in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\n${"ghp"}_${"a1B2".repeat(8)}\n`), "token"));
+test("privacy-scan: a local hostname in a file fails", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", `\nssh ${["studio-mac", "local"].join(".")}\n`), "hostname"));
+test("privacy-scan: PRIVACY_EXTRA words fail", () =>
+  failsWith("privacy-scan.mjs", (d) => append(d, "NOTICE", "\nmade at Initech\n"), "PRIVACY_EXTRA", { env: { PRIVACY_EXTRA: "initech" } }));
+test("privacy-scan: the copyright holder's name outside LICENSE fails", () =>
+  failsWith("privacy-scan.mjs", (d) => {
+    const holder = /^\s*Copyright\s+(?:\(c\)\s+)?\d{4}\s+(.+?)\s*$/m.exec(rd(d, "LICENSE"))[1];
+    append(d, "NOTICE", `\nby ${holder}\n`);
+  }, "copyright holder"));
+test("privacy-scan: an invalid PRIVACY_AUTHORS value is refused", () =>
+  withCopy((d) => { const r = run("privacy-scan.mjs", d, { env: { PRIVACY_AUTHORS: "maybe" } }); assert.equal(r.status, 2); assert.match(r.out, /PRIVACY_AUTHORS/); }));
+
+test("privacy-scan: a PNG text chunk with a home path fails", () =>
+  failsWith("privacy-scan.mjs", (d) => pngWith(d, textChunk("Title", MAC_HOME)), 'PNG text chunk "Title"'));
+test("privacy-scan: a PNG Software chunk is allowed", () =>
+  passes("privacy-scan.mjs", (d) => pngWith(d, textChunk("Software", "rsvg-convert 2.58"))));
+test("privacy-scan: a PNG Software chunk holding a home path still fails", () =>
+  failsWith("privacy-scan.mjs", (d) => pngWith(d, textChunk("Software", MAC_HOME)), "home-path-mac"));
+test("privacy-scan: a compressed PNG text chunk is read", () =>
+  failsWith("privacy-scan.mjs", (d) => pngWith(d, chunk("zTXt", Buffer.concat([Buffer.from("Comment\0\0", "latin1"), deflateSync(Buffer.from(LINUX_HOME))]))), 'PNG text chunk "Comment"'));
+test("privacy-scan: PNG EXIF data fails", () =>
+  failsWith("privacy-scan.mjs", (d) => pngWith(d, chunk("eXIf", Buffer.from("II*\0"))), "eXIf"));
+
+// Git cases: the history is scanned too.
+test("privacy-scan: a clean git history passes", () => passes("privacy-scan.mjs", (d) => gitCommit(d, "Initial import")));
+test("privacy-scan: GitHub's web-merge committer is allowed", () =>
+  passes("privacy-scan.mjs", (d) => gitCommit(d, "Merge pull request #1", { GIT_COMMITTER_EMAIL: at("noreply", "github.com"), GIT_COMMITTER_NAME: "GitHub" })));
+test("privacy-scan: a Dependabot sign-off is allowed", () =>
+  passes("privacy-scan.mjs", (d) => gitCommit(d, `Bump actions/checkout from 6 to 7\n\nSigned-off-by: dependabot[bot] <${at("support", "github.com")}>`)));
+test("privacy-scan: a real e-mail in a commit message fails", () =>
+  failsWith("privacy-scan.mjs", (d) => gitCommit(d, `Fix\n\nreported by ${REAL_MAIL}`), "email"));
+test("privacy-scan: a human Co-Authored-By fails", () =>
+  failsWith("privacy-scan.mjs", (d) => gitCommit(d, "Fix\n\nCo-Authored-By: Someone Else <no-address>"), "Co-Authored-By"));
+test("privacy-scan: a real author e-mail fails by default", () =>
+  failsWith("privacy-scan.mjs", (d) => gitCommit(d, "Initial import", { GIT_AUTHOR_EMAIL: REAL_MAIL, GIT_COMMITTER_EMAIL: REAL_MAIL }), "author e-mail"));
+test("privacy-scan: a real author e-mail passes with PRIVACY_AUTHORS=skip", () =>
+  passes("privacy-scan.mjs", (d) => gitCommit(d, "Initial import", { GIT_AUTHOR_EMAIL: REAL_MAIL, GIT_COMMITTER_EMAIL: REAL_MAIL }), { env: { PRIVACY_AUTHORS: "skip" } }));
+test("privacy-scan: skip does not excuse the same address in a file", () =>
+  failsWith("privacy-scan.mjs", (d) => { append(d, "NOTICE", `\nwrite to ${REAL_MAIL}\n`); gitCommit(d, "Initial import"); }, "email", { env: { PRIVACY_AUTHORS: "skip" } }));
+test("privacy-scan: skip does not excuse a home path in a commit message", () =>
+  failsWith("privacy-scan.mjs", (d) => gitCommit(d, `Notes from ${MAC_HOME}`), "home-path-mac", { env: { PRIVACY_AUTHORS: "skip" } }));
+test("privacy-scan: a leak that was added and removed is still found in history", () =>
+  failsWith("privacy-scan.mjs", (d) => {
+    append(d, "NOTICE", `\nsee ${MAC_HOME}\n`);
+    gitCommit(d, "Add a note");
+    sub(d, "NOTICE", `\nsee ${MAC_HOME}\n`, "");
+    gitCommit(d, "Remove the note");
+  }, "history"));
+test("privacy-scan: a PNG text chunk that was committed and replaced is found in history", () =>
+  failsWith("privacy-scan.mjs", (d) => {
+    const clean = readFileSync(path(d, "preview.png"));
+    pngWith(d, textChunk("Title", "leak"));
+    gitCommit(d, "Add a screenshot");
+    writeFileSync(path(d, "preview.png"), clean);
+    gitCommit(d, "Replace the screenshot");
+  }, "history"));

@@ -156,6 +156,13 @@ if (has(root, "LICENSE")) {
 }
 if (has(root, "NOTICE") && !/Copyright\s+\d{4}/.test(read(root, "NOTICE"))) r.fail("NOTICE has no 'Copyright <year>' line");
 
+if (json["package.json"]) {
+  const pk = json["package.json"];
+  if (pk.license !== "Apache-2.0") r.fail('package.json: "license" must be "Apache-2.0" (the same as LICENSE)');
+  if (!pk.engines?.node) r.fail('package.json: "engines.node" is missing (the tests need Node 22 or newer)');
+  if (pk.scripts?.test !== "node --test") r.fail('package.json: scripts.test must stay "node --test" (it finds tests/ and scripts/ tests by name; a directory argument fails on Node 22+)');
+}
+
 // ---- 6. size limits and line endings
 for (const f of files) {
   const size = statSync(join(root, f)).size;

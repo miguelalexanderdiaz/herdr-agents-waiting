@@ -30,7 +30,7 @@ const ALLOWED_MAIL = [
   /^noreply@anthropic\.com$/i,
   /^git@github\.com$/i,
 ];
-const AUTHORS = (process.env.PRIVACY_AUTHORS ?? "all").trim().toLowerCase();
+const AUTHORS = (process.env.PRIVACY_AUTHORS || "all").trim().toLowerCase();
 if (!["all", "skip"].includes(AUTHORS)) { console.log(`privacy-scan: PRIVACY_AUTHORS must be "all" or "skip", not "${AUTHORS}"`); process.exit(2); }
 // Home folder names that are not a person: CI runners and the placeholders tests and docs use.
 const GENERIC_HOMES = new Set(["runner", "vsts", "ubuntu", "user", "username", "name", "you", "me", "dev", "example", "someone", "alice", "bob"]);
