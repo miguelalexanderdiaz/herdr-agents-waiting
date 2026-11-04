@@ -35,23 +35,22 @@
 </ul>
 
 <h2 id="status">Status</h2>
-<div class="note warn"><p>The original mod ran in the author's Herdr on macOS. The changes made since then pass <code>herdr-app check</code> (it renders the mod once) and the unit tests; they have not been watched in a live window yet. Tested on Herdr 0.1.12 only. The list of what nobody has observed, each with a 30-second check, is on <a href="install.html#verification">Install</a>.</p></div>
+<div class="note warn"><p>The original mod ran in the author's Herdr on macOS. The changes made since then pass <code>herdr-app check</code> (it renders the mod once) and the unit tests; they have not been watched in a live window yet. Tested on Herdr 0.1.12 only. The list of what nobody has observed, each with a 30-second check, is on <a href="troubleshooting.html#verification">Troubleshooting</a>.</p></div>
 
 <h2 id="quick-start">Quick start</h2>
-<ol>
-<li>Copy <code>mods/attention-picker/</code> into your Herdr app home's <code>mods/</code> folder.</li>
-<li>Add <code>"ctrl-shift-a": "mod.open:attention-picker"</code> to the <code>global</code> and <code>terminal</code> sections of your <code>keys.json</code>.</li>
-<li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Press it again, or <kbd>Esc</kbd>, to close: <kbd>Esc</kbd> always works, and the key should (Herdr's <code>mod.open</code> toggles).</li>
-</ol>
-<p>Details, including how to let a Herdr agent do it for you, are on the <a href="install.html">Install</a> page.</p>
+<p class="cmd-label">macOS and Linux</p>
+<div class="cell"><pre id="cmd-sh" tabindex="0"><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh</code></pre><button class="copy" type="button" data-copy="cmd-sh" aria-label="Copy the macOS and Linux command" hidden>Copy</button></div>
+<p class="cmd-label">Windows (PowerShell)</p>
+<div class="cell"><pre id="cmd-ps" tabindex="0"><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.ps1 | iex</code></pre><button class="copy" type="button" data-copy="cmd-ps" aria-label="Copy the Windows command" hidden>Copy</button></div>
+<p>It asks before writing anything. Then <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> opens the list and <kbd>Esc</kbd> closes it. With an agent, by hand, and how to remove it: <a href="install.html">Install</a>.</p>
 
 <h2 id="read-next">Read next</h2>
 <ul class="cards">
-<li><a href="install.html">Install</a><p>By agent or by hand, requirements, what is not yet verified, uninstall.</p></li>
+<li><a href="install.html">Install</a><p>One command, or with an agent or by hand; uninstall.</p></li>
 <li><a href="usage.html">Usage</a><p>What it lists, keys, search, sorts, waiting times, previews.</p></li>
 <li><a href="configuration.html">Configuration</a><p>Props, shared keys, rebinding, notes for layout authors.</p></li>
 <li><a href="how-it-works.html">How it works</a><p>Files, data sources, polling, privacy.</p></li>
-<li><a href="troubleshooting.html">Troubleshooting</a><p>When a key, icon, time or preview is missing.</p></li>
+<li><a href="troubleshooting.html">Troubleshooting</a><p>When a key, icon, time or preview is missing; what is not yet verified.</p></li>
 </ul>
 
 <h2 id="privacy">Privacy in one paragraph</h2>
@@ -61,7 +60,8 @@
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
 <p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
-<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+<p>This site is plain HTML and CSS, with one small script of its own for the Copy buttons. It loads nothing from other sites.</p>
 </footer>
+<script src="assets/copy.js"></script>
 </body>
 </html>

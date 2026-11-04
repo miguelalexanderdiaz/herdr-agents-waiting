@@ -21,7 +21,8 @@
 <p>There is no settings file. What can be configured is the key, one prop, and a few constants at the top of <code>main.js</code>. Layout authors can also feed it two shared values.</p>
 
 <h2 id="keys-json">Key binding</h2>
-<p>The repository's <code>keys.json</code> binds <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> in <code>global</code> and <code>terminal</code> to the command <code>mod.open:attention-picker</code>. Change the left side to any key Herdr accepts. Herdr applies <code>keys.json</code> live. See <a href="install.html#rebind">Install</a>.</p>
+<p>The repository's <code>keys.json</code> binds <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> in <code>global</code> and <code>terminal</code> to the command <code>mod.open:attention-picker</code>. Change the left side to any key Herdr accepts. Herdr applies <code>keys.json</code> live.</p>
+<p>Put <code>"&lt;key&gt;": "mod.open:attention-picker"</code> in the <code>global</code> section (so it works anywhere) and in <code>terminal</code> (so it works while a terminal has focus; a focused terminal uses that more specific section). Pressing the key again should close the dialog, because <code>mod.open</code> toggles; <kbd>Esc</kbd> always does. If <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> is taken by a program you run in your terminals, bind another key. Avoid <code>cmd</code> (not on Linux or Windows) and <code>ctrl-alt</code> (AltGr on some Windows keyboards).</p>
 
 <h2 id="props">Props</h2>
 <p>Props are given by whatever opens the overlay. Opening it with its key passes none, so the search box is on.</p>
@@ -90,7 +91,7 @@ function publish() {
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
 <p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
-<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+<p>This site is plain HTML and CSS, with one small script of its own for the Copy buttons. It loads nothing from other sites.</p>
 </footer>
 </body>
 </html>

@@ -36,8 +36,6 @@ list once you have looked at it, because Herdr then calls it idle; it then sits 
 
 ## Install
 
-### One command
-
 macOS and Linux:
 
 ```sh
@@ -50,56 +48,21 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.ps1 | iex
 ```
 
-It says what the mod reaches (no network; `hc read` on waiting agents' screens while the list is open) and asks before writing anything. Then it copies `mods/attention-picker` into your Herdr home, adds `ctrl-shift-a` to `keys.json` (asking before it replaces a key you use) and runs `herdr-app check`. Anything it replaces is backed up first under `community/herdr-agents-waiting/` in the Herdr home;
-running it again updates in place. From a clone: `install/install.sh` (or `.\install\install.ps1`).
-No questions: `sh -s -- --yes` (Windows: `$env:HERDR_YES = 1` first). Another Herdr home: `--home
-<folder>` or `HERDR_APP_HOME`. Merging `keys.json` uses Node, or on macOS the system's own JavaScript;
-without either it prints the keys to add by hand.
+It shows what the mod reaches and asks before writing anything, backs up anything it replaces, and checks the mod.
+Running it again updates. Then `ctrl-shift-a` (from `keys.json`) opens the list.
 
-### With a Herdr agent
+Remove it: the same command with the uninstall flag.
 
-Paste this into an agent that works in your Herdr home:
-
-```text
-Add the Herdr mod from https://github.com/miguelalexanderdiaz/herdr-agents-waiting
-(the folder mods/attention-picker). Read RECIPE.md and AGENTS.md in that repo first and
-tell me what the mod reaches before you copy anything. Merge its keys.json into mine and
-ask me before replacing any key I already use. Then run herdr-app check on the mod folder.
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh -s -- --uninstall
 ```
 
-When the repository is public and listed, `herdr.dev/mods/miguelalexanderdiaz/herdr-agents-waiting` works the same
-way. Agents: read [AGENTS.md](AGENTS.md).
+```powershell
+$env:HERDR_UNINSTALL = 1; irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.ps1 | iex
+```
 
-### By hand
-
-1. Get the files: `git clone https://github.com/miguelalexanderdiaz/herdr-agents-waiting.git`, or download the zip.
-2. Copy the `mods/attention-picker` folder, whole, into the `mods` folder of your Herdr app home (Herdr's
-   documentation gives `~/.config/herdr-app`; `HERDR_APP_HOME` moves it, see `herdr-app --help`). Copy all of it:
-   `main.js` imports `logic.js` and `ask.js`, and the icons load from `mods/attention-picker/`.
-3. Add the key to your `keys.json`, in both the `global` and `terminal` sections. If you already use that key, choose
-   another; do not overwrite yours.
-
-   ```json
-   {
-     "global":   { "ctrl-shift-a": "mod.open:attention-picker" },
-     "terminal": { "ctrl-shift-a": "mod.open:attention-picker" }
-   }
-   ```
-
-4. Check it: `herdr-app check ~/.config/herdr-app/mods/attention-picker`. Herdr loads mods and keys live, so there
-   is no restart. Then, from a clone of this repository, run
-   `node scripts/verify-install.mjs ~/.config/herdr-app/mods/attention-picker --home ~/.config/herdr-app`
-   (Node 22 or newer; or set `HERDR_APP_HOME` instead of `--home`). It checks the folder name against `HOME`, the
-   icons, `mod.json` and that your `keys.json` has a key for `mod.open:attention-picker`. It is read-only.
-5. Press `Ctrl`+`Shift`+`A`.
-
-`herdr-app check` proves the code loads and renders once. It does not run the timers or screen reads that start
-later, and it passes a broken `mod.json` or a renamed folder whose `HOME` constant was not changed; that is what
-`verify-install.mjs` is for. Also open the dialog in the app.
-
-**Name clash.** If you already have a mod called `attention-picker`, do not overwrite it. Install this one under
-another name and change three places: the folder, the `HOME` constant at the top of `main.js`, and the name in your
-`keys.json` line (`mod.open:<new name>`).
+With an agent, by hand, options and name clashes: [Install](https://miguelalexanderdiaz.github.io/herdr-agents-waiting/install.html).
+Agents: read [AGENTS.md](AGENTS.md).
 
 ## Open it
 
@@ -208,16 +171,8 @@ tracker (the [bug report form](.github/ISSUE_TEMPLATE/bug_report.yml) asks for y
 
 ## Uninstall
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh -s -- --uninstall
-```
-
-(Windows: `$env:HERDR_UNINSTALL = 1` before the `irm ... | iex` line.) It removes what it installed
-and the keys it added (not ones you changed since), backing them up first. 
-
-By hand: Delete the `mods/attention-picker` folder from your Herdr home and remove the `mod.open:attention-picker` lines from
-`keys.json`. The shared value `attention.sort` and the mod's stored first-seen times are left behind; nothing reads
-them once the mod is gone.
+Run the install command with the uninstall flag (see [Install](#install)). It removes only what it installed, and
+only the keys you have not changed since. By hand: [Install](https://miguelalexanderdiaz.github.io/herdr-agents-waiting/install.html#options).
 
 ## Contribute
 

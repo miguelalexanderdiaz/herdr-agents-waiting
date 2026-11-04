@@ -416,4 +416,12 @@ test("check-docs: a broken link fails", () => withDocs(pageEdit("usage", "<p>Tex
 test("check-docs: a link to a missing anchor fails", () => withDocs((d) => sub(d, "README.md", "usage.html#top", "usage.html#missing"), "heading/id that does not exist"));
 test("check-docs: a page that loads another origin fails", () => withDocs(pageEdit("usage", "</head>", '<link rel="stylesheet" href="https://cdn.example.invalid/x.css"></head>'), "external origin"));
 test("check-docs: a page without lang fails", () => withDocs(pageEdit("usage", '<html lang="en">', "<html>"), "has no lang"));
+const COPY_JS = 'for (const b of document.querySelectorAll("button[data-copy]")) b.hidden = false;\n';
+test("check-docs: a page may load the site's own script", () => withDocs((d) => { wr(d, "docs/assets/copy.js", COPY_JS); sub(d, "docs/usage.html", "</main>", '</main><script src="assets/copy.js"></script>'); }));
+test("check-docs: the repository's own docs/assets/copy.js passes the script rule", () => withDocs((d) => wr(d, "docs/assets/copy.js", readFileSync(join(REPO, "docs", "assets", "copy.js"), "utf8"))));
+test("check-docs: a page with an inline script fails", () => withDocs(pageEdit("usage", "</head>", "<script>alert(1)</script></head>"), "inline <script>"));
+test("check-docs: a page loading a script from another host fails", () => withDocs(pageEdit("usage", "</head>", '<script src="https://cdn.example.invalid/x.js"></script></head>'), "must be an existing file in docs/assets/"));
+test("check-docs: a page loading a missing site script fails", () => withDocs(pageEdit("usage", "</head>", '<script src="assets/missing.js"></script></head>'), "must be an existing file in docs/assets/"));
+test("check-docs: a site script that reaches the network fails", () => withDocs((d) => wr(d, "docs/assets/copy.js", COPY_JS + "fetch('x.json');\n"), "may not reach the network"));
+test("check-docs: a site script that stores something fails", () => withDocs((d) => wr(d, "docs/assets/copy.js", COPY_JS + "localStorage.setItem('a', '1');\n"), "may not reach the network"));
 test("check-docs: a stale docs/assets/preview.png fails", () => withDocs((d) => writeFileSync(path(d, "docs/assets/preview.png"), Buffer.from("not the same")), "differs from preview.png"));

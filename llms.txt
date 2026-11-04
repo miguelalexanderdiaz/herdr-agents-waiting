@@ -8,7 +8,7 @@ This is a mod for the Herdr desktop app, not a library or a web app. Install by 
 
 - [AGENTS.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/AGENTS.md): install, adapt, test and edit safely; the compatibility contract; Herdr gotchas; claim-to-source map.
 - [RECIPE.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/RECIPE.md): the brief in Herdr's sharing format (what you see, how it behaves, built from, watch out, done when).
-- [README.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/README.md): what it is, install by hand, keys, privacy, troubleshooting, uninstall.
+- [README.md](https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/README.md): what it is, install in one command, keys, privacy, troubleshooting, uninstall.
 
 ## Mod files
 

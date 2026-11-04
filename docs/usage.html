@@ -21,6 +21,12 @@
 
 <h2 id="open">Open it</h2>
 <p>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> (the key in this repository's <code>keys.json</code>). Pressing it again should close it, because Herdr's <code>mod.open</code> toggles; <kbd>Esc</kbd> always closes it. The search box has the focus as soon as it opens.</p>
+<p>Other ways to open it:</p>
+<ul>
+<li>The command palette (<code>app.palette</code>) can run <code>mod.open</code>, which needs the argument <code>name</code> (<code>attention-picker</code>). How the palette asks for that argument is not documented by Herdr and has not been tried; see <a href="troubleshooting.html#verification">Verification status</a>.</li>
+<li>From a terminal: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. Herdr's command list says <code>mod.open</code> toggles, so running it again closes the dialog. On Windows the quoting of the JSON differs by shell; see <a href="troubleshooting.html#quoting">Troubleshooting</a>.</li>
+<li>From another mod: <code>openOverlay({ mod: "attention-picker", kind: "dialog", width: 640 })</code>. See <a href="configuration.html#props">Configuration</a>.</li>
+</ul>
 
 <h2 id="what">What it lists</h2>
 <p>Only agents: terminals whose program reports a status to Herdr (the same list Herdr's own agent panels use). A plain shell does not appear, even in a space full of open terminals; with no agent at all the dialog says "No agents running".</p>
@@ -43,7 +49,7 @@
 <tbody>
 <tr><td><kbd>Up</kbd>, <kbd>Down</kbd></td><td>Move the selection; it wraps at both ends. The selection stays on the same agent when the list reorders.</td></tr>
 <tr><td><kbd>Enter</kbd></td><td>Go to the selected agent: Herdr focuses it and the dialog closes. On the "earlier" line it opens or closes the fold instead.</td></tr>
-<tr><td><kbd>Tab</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Next or previous sort for the lower list (not yet observed with the search box focused, see <a href="install.html#verification">Verification status</a>).</td></tr>
+<tr><td><kbd>Tab</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Next or previous sort for the lower list (not yet observed with the search box focused, see <a href="troubleshooting.html#verification">Verification status</a>).</td></tr>
 <tr><td>Typing</td><td>Filters the list (search is on by default).</td></tr>
 <tr><td><kbd>Esc</kbd></td><td>Close.</td></tr>
 <tr><td>Click a row</td><td>Same as <kbd>Enter</kbd> on it.</td></tr>
@@ -84,7 +90,7 @@
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
 <p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
-<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+<p>This site is plain HTML and CSS, with one small script of its own for the Copy buttons. It loads nothing from other sites.</p>
 </footer>
 </body>
 </html>

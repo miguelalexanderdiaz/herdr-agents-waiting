@@ -1,5 +1,6 @@
 // Documentation check: links resolve, the Pages site loads nothing from elsewhere,
-// the site's preview is the repo's preview.
+// the site's preview is the repo's preview. Pages run no inline script; the only scripts are the site's own
+// files in docs/assets/, and those may not reach the network, load code or store anything.
 //   node scripts/check-docs.mjs [--root <dir>]
 // Checks README.md, CONTRIBUTING.md, AGENTS.md, CHANGELOG.md, RECIPE.md and docs/*.html: links and anchors;
 // the numbers and constants the documents quote against main.js; the same navigation on every page;
@@ -76,9 +77,20 @@ for (const f of HTML) {
   if (!/<title>\s*\S[\s\S]*?<\/title>/i.test(t)) r.fail(`${f}: no <title>`);
   if (!/<meta[^>]+name\s*=\s*["']viewport["']/i.test(t)) r.fail(`${f}: no viewport meta`);
   if (!/<meta[^>]+charset/i.test(t)) r.fail(`${f}: no charset meta`);
-  if (/<script\b/i.test(t)) r.fail(`${f}: contains a <script>; the site is plain HTML and CSS`);
+  // No inline script. The only scripts are the site's own files in docs/assets/ (<script src="assets/x.js">).
+  for (const m of t.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const src = /\ssrc\s*=\s*["']([^"']+)["']/i.exec(m[1])?.[1];
+    if (!src || m[2].trim()) r.fail(`${f}: an inline <script>; a page may only load the site's own scripts with <script src="assets/...">`);
+    if (src && !(/^assets\/[\w.-]+\.js$/.test(src) && has(root, `docs/${src}`))) r.fail(`${f}: <script src="${src}"> must be an existing file in docs/assets/`);
+  }
+  if ((t.match(/<script\b/gi) ?? []).length !== (t.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) ?? []).length) r.fail(`${f}: a <script> is not closed`);
   const imgs = [...t.matchAll(/<img\b[^>]*>/gi)];
   for (const i of imgs) if (!/\balt\s*=/.test(i[0])) r.fail(`${f}: <img> without alt`);
+}
+// The site's scripts: no network, no loading code, no storage, no addresses (the site stays static and offline).
+for (const f of files.filter((f) => /^docs\/.+\.m?js$/.test(f))) {
+  const bad = /\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts|eval|Function|localStorage|sessionStorage|indexedDB|document\.cookie|Worker)\b\s*[.(]|\bimport\s*[(\s{*"']|\bnew\s+(Function|Worker|WebSocket|EventSource|XMLHttpRequest|Image)\b|\.src\s*=|https?:\/\//.exec(text(f));
+  if (bad) r.fail(`${f}: uses ${bad[0]}; the site's scripts may not reach the network, load code or store anything`);
 }
 for (const f of files.filter((f) => /^docs\/.+\.css$/.test(f))) {
   for (const m of text(f).matchAll(/(?:@import|url\()\s*["']?\s*((?:https?:)?\/\/[^"')\s]+)/gi)) r.fail(`${f}: CSS loads an external origin: ${m[1]}`);
