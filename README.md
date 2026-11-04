@@ -1,5 +1,7 @@
 # Agents waiting
 
+<a href="https://miguelalexanderdiaz.github.io/herdr-agents-waiting/"><img src="docs/assets/docs-button.svg" alt="Read the documentation" width="196" height="44"></a>
+
 A [Herdr](https://herdr.dev) mod: one dialog that answers "which of my agents needs me?"
 
 It lists the agents that are blocked on you, then the ones that have finished, each with a one-line preview of what
