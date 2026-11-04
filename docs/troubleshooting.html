@@ -77,7 +77,7 @@
 <p>On Windows the quoting of the JSON form depends on the shell (PowerShell and cmd.exe treat quotes differently, and PowerShell may need the inner quotes escaped). This has not been tried on Windows. The simple routes are the key, the command palette, or the flag form above.</p>
 
 <h2 id="windows-linux">Windows or Linux</h2>
-<p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
+<p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. CI (<code>.github/workflows/ci.yml</code>) runs the checks and unit tests on Linux, Windows and macOS, each on Node 22 and 24; that covers the code, not the mod inside Herdr. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
 
 <h2 id="verification">Verification status</h2>
 <p>What has and has not been seen. Requirements: Herdr (tested on 0.1.12 only), no other mod; Node 22 or newer only for this repository's tests. The original mod ran in the author's Herdr on macOS (0.1.12). Everything added since then passed <code>herdr-app check</code> and the unit tests, which cover the pure code and run the view under Node against stand-ins for Herdr's modules. None of it has been watched in a live window, and nothing has been run on Linux or Windows. Rows below are what a first observer can settle; when one is seen, it moves to "observed on &lt;OS&gt;, Herdr &lt;version&gt;".</p>
@@ -93,7 +93,7 @@
 <tr><td>The palette entry for <code>mod.open</code>.</td><td>Open the command palette, search "mod.open" or "Open mod", and see whether it asks for a name.</td></tr>
 <tr><td>The 30-second redraw of a quiet dialog, so "5m" becomes "6m".</td><td>Leave the dialog open for a minute with an agent that shows a time.</td></tr>
 <tr><td>A question that appears without Herdr's sequence number moving shows up within about 30 seconds.</td><td>Let an agent ask something while the dialog is open and time the preview.</td></tr>
-<tr><td>Linux and Windows.</td><td>Install on that system and open the dialog; CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked.</td></tr>
+<tr><td>Linux and Windows.</td><td>Install on that system and open the dialog. CI (<code>.github/workflows/ci.yml</code>) runs the checks and unit tests on Linux, Windows and macOS, each on Node 22 and 24; that covers the code, not the mod inside Herdr.</td></tr>
 </tbody>
 </table></div>
 
@@ -103,7 +103,6 @@
 </main>
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
-<p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
 <p>This site is plain HTML and CSS, with one small script of its own for the Copy buttons. It loads nothing from other sites.</p>
 </footer>
 </body>

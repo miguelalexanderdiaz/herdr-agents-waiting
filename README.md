@@ -100,8 +100,8 @@ may show up to about 30 seconds late.
 
 More in the documentation site (plain HTML in [docs/](docs/index.html): [install](docs/install.html),
 [usage](docs/usage.html), [configuration](docs/configuration.html),
-[troubleshooting](docs/troubleshooting.html)). Once the repository is public and GitHub Pages is on, the site is at
-`https://miguelalexanderdiaz.github.io/herdr-agents-waiting/`.
+[troubleshooting](docs/troubleshooting.html)), published at
+<https://miguelalexanderdiaz.github.io/herdr-agents-waiting/>.
 
 ## Requirements
 
@@ -111,7 +111,7 @@ More in the documentation site (plain HTML in [docs/](docs/index.html): [install
 | Other mods | None. |
 | Node, npm, network | None to run it. Node 22 or newer only to run this repo's tests. |
 | macOS | The original mod ran in the author's Herdr. The changes since then are not yet watched in a live window. |
-| Linux, Windows | Not run in Herdr. The mod is plain JavaScript with no operating-system calls. CI is defined in `scripts/ci.workflow.yml` (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. |
+| Linux, Windows | Not run in Herdr. The mod is plain JavaScript with no operating-system calls. CI (`.github/workflows/ci.yml`) runs the checks and unit tests on Linux, Windows and macOS, each on Node 22 and 24; that covers the code, not the mod inside Herdr. |
 
 ## Verification status
 
