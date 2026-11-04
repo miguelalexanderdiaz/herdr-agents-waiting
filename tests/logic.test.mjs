@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   DAY, pickSearch, duration, clean, nameOf, normalizeSort, nextSort, statusGroup, statusSince,
   parseSeen, trackSeen, matchesQuery, buildRows, emptyState, resolveSelection, moveSelection,
-  createPreviewReader, isPick, contrast, inkOn,
+  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK,
 } from "../mods/attention-picker/logic.js";
 
 const NOW = 1_800_000_000_000;
@@ -423,4 +423,63 @@ test("inkOn: every space mark colour reads at 4.5:1 or better", () => {
   assert.equal(inkOn("#f5f5f5"), "#111111");
   assert.equal(inkOn("not a color"), "#ffffff");
   assert.equal(inkOn(undefined), "#ffffff");
+});
+
+// ---- headline ---------------------------------------------------------------
+
+test("headline: singular and plural for agents that need you", () => {
+  assert.equal(headline({ agents: [{ status: "blocked" }] }), "1 agent needs you");
+  assert.equal(headline({ agents: [{ status: "blocked" }, { status: "blocked" }, { status: "idle" }] }), "2 agents need you");
+});
+
+test("headline: blocked beats done, done alone counts finished", () => {
+  assert.equal(headline({ agents: [{ status: "done" }, { status: "blocked" }, { status: "done" }] }), "1 agent needs you");
+  assert.equal(headline({ agents: [{ status: "done" }, { status: "done" }, { status: "working" }] }), "2 finished");
+});
+
+test("headline: no agents, and agents but none waiting", () => {
+  assert.equal(headline({ agents: [] }), "No agents running");
+  assert.equal(headline({}), "No agents running");
+  assert.equal(headline({ agents: [{ status: "working" }, { status: "idle" }] }), "Nothing needs you right now");
+});
+
+// ---- space colors -----------------------------------------------------------
+
+const THEME = { dim: "#808090", accent: "#5b8def", ansi4: "#0000ff", notAColor: 5 };
+const color = (raw, extra = {}) => resolveSpaceColor({ raw, theme: THEME, dim: THEME.dim, ...extra });
+
+test("normalizeHex: #rgb, #rrggbb and #rrggbbaa become lowercase #rrggbb, anything else null", () => {
+  assert.equal(normalizeHex("#abc"), "#aabbcc");
+  assert.equal(normalizeHex("#AABBCC"), "#aabbcc");
+  assert.equal(normalizeHex("#AABBCCDD"), "#aabbcc");
+  for (const bad of ["abc", "#ab", "#abcd", "#12345", "#ggg", "teal", "", null, undefined, 5, [], {}]) assert.equal(normalizeHex(bad), null, String(bad));
+});
+
+test("inkOn: short and alpha hex pick the same ink as the long form; junk gets white", () => {
+  assert.equal(inkOn("#fa0"), inkOn("#ffaa00"));
+  assert.equal(inkOn("#ffaa00ff"), inkOn("#ffaa00"));
+  assert.equal(inkOn("#ffffff"), "#111111");
+  assert.equal(inkOn("#000"), "#ffffff");
+  for (const bad of ["teal", 5, null, undefined, {}]) assert.equal(inkOn(bad), "#ffffff");
+});
+
+test("resolveSpaceColor: hex values are normalized, names resolve through MARK then the theme", () => {
+  assert.equal(color("#abc"), "#aabbcc");
+  assert.equal(color("#AABBCCDD"), "#aabbcc");
+  assert.equal(color("ansi3"), MARK.ansi3);
+  assert.equal(color("ansi4"), MARK.ansi4, "MARK wins over the theme's own ansi4");
+  assert.equal(color("accent"), THEME.accent, "a theme key that MARK lacks");
+});
+
+test("resolveSpaceColor: junk never throws and falls back to the default, then dim", () => {
+  for (const raw of [5, null, undefined, [], {}, true, "teal", "", "toString", "__proto__", "notAColor"]) {
+    assert.equal(color(raw), MARK.ansi6, String(raw));
+  }
+  assert.equal(color("teal", { mark: {}, theme: {} }), THEME.dim, "no default available gives dim");
+  assert.equal(resolveSpaceColor({}), MARK.ansi6, "even with no arguments but an object");
+});
+
+test("resolveSpaceColor: the home space is always dim", () => {
+  assert.equal(color("#ff0000", { isHome: true }), THEME.dim);
+  assert.equal(color(undefined, { isHome: true }), THEME.dim);
 });

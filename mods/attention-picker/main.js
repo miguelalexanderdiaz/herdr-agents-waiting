@@ -26,7 +26,7 @@ import { agents, spaces, run, hc, theme, settings, shared, setShared, props, clo
 import { askOf } from "./ask.js";
 import {
   ORDER, WORD, isPick, pickSearch, duration, normalizeSort, nextSort, parseSeen, trackSeen,
-  buildRows, emptyState, inkOn, resolveSelection, moveSelection, createPreviewReader,
+  buildRows, emptyState, headline, inkOn, resolveSpaceColor, resolveSelection, moveSelection, createPreviewReader,
 } from "./logic.js";
 
 const HOME = "mods/attention-picker"; // this mod's folder, for its own assets
@@ -36,7 +36,6 @@ const READ_CONCURRENCY = 4; // hc read calls in flight at once
 const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms } }
 const HOME_SPACE_NAME = "~"; // Herdr names a space after its folder; the home folder shows as "~" and is drawn dim
 
-const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 const H = { head: 29, agent: 32, waiting: 46, sep: 17, earlier: 35 }; // row heights, as in Go to…
 const SORT_LABEL = { recent: "Recent", oldest: "Oldest", space: "Space order" };
 const SORT_TIP = { recent: "Latest activity first", oldest: "Longest idle first", space: "As the space tree shows them" };
@@ -48,13 +47,6 @@ function loadSeen() {
 }
 function saveSeen(seen) {
   try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* storage unavailable: times stay in memory */ }
-}
-
-// The space's color, as every other list shows it (shared "space.colors").
-function spaceColor(t, s) {
-  if (s.name === HOME_SPACE_NAME) return t.dim;
-  const c = (shared("space.colors") ?? {})[s.id] ?? "ansi6";
-  return c.startsWith("#") ? c : (MARK[c] ?? t[c]);
 }
 
 export default class AttentionPicker extends View {
@@ -108,7 +100,7 @@ export default class AttentionPicker extends View {
     const picks = rows.filter(isPick);
     const numbers = new Map(); // key → 1-9 shortcut, "earlier" has none
     for (const r of picks) if (r.kind !== "earlier") numbers.set(r.key, numbers.size + 1);
-    this.cache = { rows, picks, numbers, anyAgents: list.length > 0 };
+    this.cache = { rows, picks, numbers, anyAgents: list.length > 0, title: headline({ agents: list }) };
     return this.cache;
   }
 
@@ -157,13 +149,10 @@ export default class AttentionPicker extends View {
   render() {
     const t = theme();
     const now = Date.now();
-    const { rows, picks, numbers, anyAgents } = this.view(now);
+    const colors = shared("space.colors");
+    const { rows, picks, numbers, anyAgents, title } = this.view(now);
     const selIdx = resolveSelection(picks, this.selected);
     const sel = picks[selIdx];
-    const asking = picks.filter((r) => r.a?.status === "blocked").length;
-    const done = picks.filter((r) => r.a?.status === "done").length;
-    const title = asking ? `${asking} agent${asking === 1 ? "" : "s"} need${asking === 1 ? "s" : ""} you`
-      : done ? `${done} finished` : (emptyState({ anyAgents }).title ?? "Nothing needs you right now");
     const hint = this.search ? "↑↓ choose · Enter go · Tab sort · Esc" : "↑↓ choose · Enter go · 1–9 jump · Tab sort · Esc";
     const sort = sortNow();
     const sortAfter = nextSort(sort);
@@ -193,7 +182,7 @@ export default class AttentionPicker extends View {
     const row = (r) => {
       if (r.kind === "sep") return v_flex().h(H.sep).px(10).justify_center().child(div().h(1).bg(t.border));
       if (r.kind === "head") {
-        const tile = spaceColor(t, r.s);
+        const tile = resolveSpaceColor({ raw: colors?.[r.s.id], theme: t, dim: t.dim, isHome: r.s.name === HOME_SPACE_NAME });
         return h_flex().px(10).pt(10).pb(3).gap(8).items_center().text_size(11).font_semibold().text_color(t.dim)
           .child(h_flex().size(18).rounded(5).bg(tile).items_center().justify_center()
             .text_size(10.5).font_bold().text_color(inkOn(tile)).child([...r.s.name][0]?.toUpperCase() ?? "?"))

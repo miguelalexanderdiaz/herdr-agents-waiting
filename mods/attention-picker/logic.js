@@ -62,11 +62,46 @@ export function contrast(a, b) {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
-// Text color for a letter drawn on a #rrggbb tile: whichever of white and
-// near-black reads better. White on the mid-tone space colors is only ~3:1.
+// #rgb, #rrggbb or #rrggbbaa (any case) as lowercase #rrggbb, else null. The
+// alpha of an 8-digit value is dropped: a tile is drawn opaque.
+export function normalizeHex(value) {
+  if (typeof value !== "string") return null;
+  const m = value.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+  if (!m) return null;
+  const h = m[1].toLowerCase();
+  return `#${h.length === 3 ? [...h].map((c) => c + c).join("") : h.slice(0, 6)}`;
+}
+
+// Text color for a letter drawn on a tile: whichever of white and near-black
+// reads better. White on the mid-tone space colors is only ~3:1. Anything that
+// is not a hex color gets white.
 export function inkOn(bg) {
-  if (!/^#[0-9a-f]{6}$/i.test(bg ?? "")) return "#ffffff";
-  return contrast(bg, "#ffffff") >= contrast(bg, "#111111") ? "#ffffff" : "#111111";
+  const hex = normalizeHex(bg);
+  if (!hex) return "#ffffff";
+  return contrast(hex, "#ffffff") >= contrast(hex, "#111111") ? "#ffffff" : "#111111";
+}
+
+// The tile colors of the ansi names a layout may put in shared "space.colors".
+export const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
+
+const own = (obj, key) => obj != null && Object.hasOwn(obj, key);
+
+// The color of a space's tile. `raw` is whatever shared "space.colors" holds
+// for it, written by other mods, so it can be anything: a hex string, a name
+// from `mark` or the theme, or junk (number, null, array, unknown name), which
+// falls back to the default ansi6 and then to `dim`. The home space is always
+// `dim`. Never throws and never returns undefined while `dim` is given.
+export function resolveSpaceColor({ raw, mark = MARK, theme = {}, dim, isHome = false } = {}) {
+  const quiet = dim ?? theme.dim;
+  if (isHome) return quiet;
+  const hex = normalizeHex(raw);
+  if (hex) return hex;
+  for (const name of [raw, "ansi6"]) {
+    if (typeof name !== "string") continue;
+    if (own(mark, name)) return mark[name];
+    if (own(theme, name) && typeof theme[name] === "string") return theme[name];
+  }
+  return quiet;
 }
 
 // ---- sort -----------------------------------------------------------------
@@ -221,6 +256,17 @@ export function emptyState({ anyAgents, filter }) {
   if (filter && String(filter).trim()) return { title: null, body: "No match" };
   if (!anyAgents) return { title: "No agents running", body: "Start one and it will show here" };
   return { title: null, body: "Nothing needs you right now" };
+}
+
+// The dialog's title: a state of the agents, never of the search box. Blocked
+// agents beat finished ones; with none waiting it is the empty-state title or
+// "Nothing needs you right now".
+export function headline({ agents = [] } = {}) {
+  const asking = agents.filter((a) => a.status === "blocked").length;
+  if (asking) return `${asking} agent${asking === 1 ? "" : "s"} need${asking === 1 ? "s" : ""} you`;
+  const done = agents.filter((a) => a.status === "done").length;
+  if (done) return `${done} finished`;
+  return emptyState({ anyAgents: agents.length > 0 }).title ?? "Nothing needs you right now";
 }
 
 // ---- selection (by key, so it survives the list reordering) -----------------

@@ -121,6 +121,30 @@ test("renders with no agents, and with a filter that matches nothing", () => {
   assert.ok(textOf(root).includes("No match"));
 });
 
+test("the title is a state of the agents: typing in the search box does not change it", () => {
+  const { view, cx, render } = open(mixed());
+  const before = titleOf(render());
+  assert.equal(before, "1 agent needs you");
+  view.input.type("web", cx);
+  assert.equal(titleOf(render()), before);
+  view.input.type("zzz", cx);
+  assert.equal(titleOf(render()), before, "no match still says what the agents need");
+  assert.deepEqual(rowIds(render()), []);
+});
+
+test("odd shared space.colors values never blank the dialog", () => {
+  for (const colors of [{ s1: 5 }, { s1: "teal" }, { s1: null }, { s1: ["#fff"] }, "junk", 7, null]) {
+    const { render } = open({ ...mixed(), shared: { "space.colors": colors } });
+    assert.ok(rowIds(render()).length > 0, JSON.stringify(colors));
+  }
+});
+
+test("a space's tile uses its shared color and a readable ink", () => {
+  const { render } = open({ ...mixed(), shared: { "space.colors": { s1: "#fa0", s2: "ansi5" } } });
+  const tiles = findAll(render(), (n) => callsOf(n, "rounded").some(([r]) => r === 5)).map((n) => callsOf(n, "bg")[0][0]);
+  assert.deepEqual(tiles, ["#ffaa00", "#8b7cf6"]);
+});
+
 test("renders 40 agents with a fixed, scrolling list", () => {
   const agents = Array.from({ length: 40 }, (_, i) => agent(i + 1, { status: i % 3 === 0 ? "blocked" : "idle" }));
   const { render } = open({ agents, spaces: [space("s1", "api", agents.map((a) => tab(a.tab)))] });
