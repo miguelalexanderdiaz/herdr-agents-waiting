@@ -1,1 +1,4 @@
-{ "global": { "ctrl-b a": "bar-strip.attention" } }
+{
+  "global": { "ctrl-shift-a": "mod.open:attention-picker" },
+  "terminal": { "ctrl-shift-a": "mod.open:attention-picker" }
+}

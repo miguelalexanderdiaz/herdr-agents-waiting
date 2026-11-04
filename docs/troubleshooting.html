@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Troubleshooting - Agents waiting for Herdr</title>
+<meta name="description" content="Fixes for a key that does nothing, missing icons, times or previews, and name clashes in the Agents waiting mod.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site">
+<a class="brand" href="index.html">Agents waiting <span aria-hidden="true">&middot;</span> a Herdr mod</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li></ul></nav>
+</header>
+<main id="main">
+
+<h1>Troubleshooting</h1>
+
+<h2 id="key">The key does nothing</h2>
+<ul>
+<li>Check that the line is in both the <code>global</code> and the <code>terminal</code> section of <code>keys.json</code>, and that the file is valid JSON (a trailing comma is the usual culprit).</li>
+<li>Another key or a program in your terminal may use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Bind a different key (<a href="install.html#rebind">Install</a>).</li>
+<li>Open it without the key to separate the problems: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. If that works, the binding is the issue. If not, the folder is.</li>
+<li><code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code> reports problems in the mod itself.</li>
+</ul>
+
+<h2 id="icons">No spinner or search icon</h2>
+<p>The icons are loaded from <code>mods/attention-picker/</code>. If you renamed the folder, change the <code>HOME</code> constant in <code>main.js</code> to match. If the two <code>.svg</code> files are missing, copy the whole folder again.</p>
+
+<h2 id="no-box">There is no search box</h2>
+<p>Something opened it with <code>search: false</code> and you are in the keys-only variant (1-9 jump badges). Open it with its own key to get the search box.</p>
+
+<h2 id="times">Times are missing or look wrong</h2>
+<ul>
+<li>A time only shows once the mod has a start for that agent. See <a href="usage.html#times">Waiting times</a>: it comes from <code>agents.since</code>, the tab, or the first time the dialog saw the agent.</li>
+<li>If the mod's local storage is unavailable, first-seen times cannot be kept and are re-learned on each open.</li>
+<li>The mod can only date a change it was open to see. An agent that finished while the dialog was closed counts from the tab's <code>changed_at</code> if there is one, or from the next time you open it.</li>
+</ul>
+
+<h2 id="preview">The second line is blank, or shows an ellipsis</h2>
+<ul>
+<li>An ellipsis is shown until the first read returns, normally under a few seconds.</li>
+<li>A blank line means no question or message was recognised on that terminal's screen. Recognition is tuned to Claude Code style screens (see <a href="usage.html#previews">Previews</a>). Other agents may show nothing; selecting the row still works.</li>
+<li>A blocked agent whose question is further back than the last 40 non-empty lines of its text may show an older line, or nothing.</li>
+</ul>
+
+<h2 id="clash">The mod did not install, or replaced mine</h2>
+<p>Do not overwrite a mod with the same name. Install under another name and change the folder, the <code>HOME</code> constant and the <code>keys.json</code> line (<a href="install.html#rename">Install</a>).</p>
+
+<h2 id="windows-linux">Windows or Linux</h2>
+<p>The mod has no operating-system code, but it has only been run in Herdr on macOS. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
+
+<h2 id="report">Reporting a problem</h2>
+<p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a> with your Herdr version, OS, what you pressed and what you saw. Do not paste terminal contents you would not want public.</p>
+
+</main>
+<footer class="site">
+<p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
+</footer>
+</body>
+</html>
