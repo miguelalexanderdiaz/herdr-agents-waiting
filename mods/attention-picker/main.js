@@ -17,7 +17,6 @@
 // from a first-seen record kept in this mod's localStorage (address -> status
 // group and time; no screen text). Screens are read with `hc read` only while
 // the dialog is open, for agents that need you or finished.
-// Known callers: the portrait layout's bar strip passes { search: true|false }.
 // Pure logic lives in logic.js and ask.js (tests/ runs it under node).
 
 import { View, div, svg } from "gpui-kit";

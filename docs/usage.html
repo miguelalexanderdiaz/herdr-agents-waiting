@@ -70,7 +70,7 @@
 <h2 id="times">Waiting times</h2>
 <p>The time next to a status is how long the agent has been in that status, and it refreshes every 30 seconds while the dialog is open (that redraw has not been watched in the live app yet). Where the start comes from, best first:</p>
 <ol>
-<li>Herdr's shared <code>agents.since</code>, if another mod publishes it (the portrait layout does). It is ignored for a blocked or working agent that is alone in its tab when the tab shows a change more than 10 seconds newer, because a value left behind by a layout you stopped using can be stale.</li>
+<li>Herdr's shared <code>agents.since</code>, if another mod publishes it. It is ignored for a blocked or working agent that is alone in its tab when the tab shows a change more than 10 seconds newer, because a value left behind by a layout you stopped using can be stale.</li>
 <li>The agent's tab: its <code>working_since</code> for a working agent, its <code>changed_at</code> (when something in the tab last changed state) for any other. It is exact for a tab with one agent and approximate for a tab with several.</li>
 <li>A first-seen time the mod records itself: the first moment the dialog saw this agent in its current status.</li>
 </ol>

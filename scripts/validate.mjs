@@ -13,9 +13,9 @@ const r = reporter("validate");
 const files = repoFiles(root);
 const isCI = Boolean(process.env.CI);
 
-// What the portrait layout (which bundles a copy of this mod) relies on.
+// What a person's own keys, layouts and mods may rely on (AGENTS.md "Do not break").
 // Keep this in step with RECIPE.md "Built from". Changing a name here is a
-// breaking change for that layout: do it on purpose, and mark it breaking (`feat!:`).
+// breaking change: do it on purpose, and mark it breaking (`feat!:`).
 export const CONTRACT = {
   props: ["search"],
   sharedRead: ["agents.since", "space.colors"],
@@ -201,11 +201,11 @@ for (const m of mods) {
       ...CONTRACT.commands.map((c) => ["command", c]),
     ];
     for (const [what, name] of need) {
-      if (!main.includes(name) && !all.includes(name)) r.fail(`mods/${m}: ${what} "${name}" is no longer used. Keep the portrait layout compatible (see CONTRACT in scripts/validate.mjs)`);
+      if (!main.includes(name) && !all.includes(name)) r.fail(`mods/${m}: ${what} "${name}" is no longer used. Keep it compatible (see CONTRACT in scripts/validate.mjs)`);
     }
     if (!/\bprops\s*\(/.test(all)) r.fail(`mods/${m}: no props() call; props.search must stay readable`);
-    if (!all.includes("setShared") || !/setShared\(\s*["']attention\.sort["']/.test(all)) r.fail(`mods/${m}: attention.sort must still be written with setShared (shared with the portrait layout)`);
-    if (/setShared\(\s*["']agents\.since["']/.test(all)) r.fail(`mods/${m}: agents.since belongs to the portrait layout; this mod must never write it`);
+    if (!all.includes("setShared") || !/setShared\(\s*["']attention\.sort["']/.test(all)) r.fail(`mods/${m}: attention.sort must still be written with setShared (the sort choice is shared state)`);
+    if (/setShared\(\s*["']agents\.since["']/.test(all)) r.fail(`mods/${m}: agents.since is published by a layout that tracks status times; this mod must never write it`);
   }
   for (const f of jsFiles) {
     const src = read(root, f);
@@ -227,7 +227,8 @@ for (const m of mods) {
       if (FILE_RE.test(text)) report.fileWrite.push(at);
       if (/["'`](\.\.\/|~\/|\/etc\/|[A-Za-z]:\\)/.test(text)) report.outside.push(at);
       // Another mod's name in code (not in a comment) is a dependency on something a stranger lacks.
-      if (/workspace-chrome|bar-strip|portrait/.test(text)) r.fail(`${at}: names another mod/layout in code (allowed on comment lines only)`);
+      const named = [...text.matchAll(/\bmod\s*:\s*["'`]([A-Za-z0-9_-]+)["'`]|\bmod\.(?:open|clone):([A-Za-z0-9_-]+)/g)].map((x) => x[1] ?? x[2]).filter((n) => n !== m);
+      if (named.length) r.fail(`${at}: names another mod in code: ${named.join(", ")} (allowed on comment lines only)`);
       if (/mods\/(?!\$\{)[A-Za-z0-9_-]+\//.test(text) && !new RegExp(`mods/${m}/`).test(text)) r.fail(`${at}: reaches into another mod's folder`);
     }
   }

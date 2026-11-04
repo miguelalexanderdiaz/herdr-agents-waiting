@@ -149,7 +149,7 @@ test("validate: a plain fetch call fails (second line of defence)", () =>
 test("validate: a missing SPDX header fails", () =>
   failsWith("validate.mjs", (d) => sub(d, "mods/attention-picker/logic.js", "// SPDX-License-Identifier: Apache-2.0", "// no licence here"), "SPDX-License-Identifier"));
 test("validate: naming another mod in code fails", () =>
-  failsWith("validate.mjs", (d) => append(d, "mods/attention-picker/logic.js", '\nconst other = "bar-strip";\n'), "names another mod"));
+  failsWith("validate.mjs", (d) => append(d, "mods/attention-picker/logic.js", '\nconst other = { mod: "other-mod" };\n'), "names another mod"));
 test("validate: a changed constant makes RECIPE.md stale", () =>
   failsWith("validate.mjs", (d) => sub(d, MAIN, "const POLL_MS = 3000", "const POLL_MS = 2000"), "different value"));
 test("validate: a removed RECIPE section fails", () =>

@@ -12,9 +12,6 @@ agents that need the person, then the finished ones, then every other agent grou
 by Herdr's native GPUI toolkit: no DOM. Herdr gives mods `exec`, `fetch` and file access and does not sandbox
 them; this mod's own policy, checked by `scripts/validate.mjs`, is to use none of them besides one `hc read` call.
 
-This repository is the canonical source of the mod. The portrait layout repository bundles a copy that is synced
-from here after each round (see "Syncing the portrait layout").
-
 | Path | What |
 |---|---|
 | `mods/attention-picker/mod.json` | name, title, overlay (dialog, width 640) |
@@ -126,7 +123,7 @@ commit them.
 
 ## Do not break (other setups depend on it)
 
-The portrait layout bundles this mod and opens it from its own bar. Keep these exactly:
+A person's own keys, layouts and mods can open this mod and use its shared keys. Keep these exactly:
 
 | Surface | Contract |
 |---|---|
@@ -138,15 +135,7 @@ The portrait layout bundles this mod and opens it from its own bar. Keep these e
 | Prop `overlay` | supplied by Herdr; the mod closes itself with `closeOverlay(props().overlay)` and falls back to the `overlay.close` command when it is missing |
 | Command | `agent.focus` with `{ terminal: address }` (and `overlay.close`, only if `props().overlay` is missing) |
 
-Adding a prop or shared key is a change to this table and needs a `feat:` pull request (its title is the line in [CHANGELOG.md](CHANGELOG.md)) and a note on the
-board of every repository that bundles the mod.
-
-## Syncing the portrait layout
-
-After a round lands here, the portrait layout repository copies these files into its own `mods/attention-picker/`:
-`mod.json`, `main.js`, `logic.js`, `ask.js`, `spinner.svg`, `search.svg`. Never copy `gpui-kit.d.ts` or
-`jsconfig.json` (Herdr writes them), `RECIPE.md`, `preview.png`, `tests/` or `scripts/`. Then run `herdr-app check`
-on the copy and `diff -r` the two mod folders: the only differences should be the two Herdr-written files.
+Adding a prop or shared key is a change to this table and needs a `feat:` pull request (its title is the line in [CHANGELOG.md](CHANGELOG.md)).
 
 ## Docs rules
 
