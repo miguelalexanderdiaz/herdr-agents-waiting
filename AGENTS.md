@@ -139,7 +139,7 @@ The portrait layout bundles this mod and opens it from its own bar. Keep these e
 | Prop `overlay` | supplied by Herdr; the mod closes itself with `closeOverlay(props().overlay)` and falls back to the `overlay.close` command when it is missing |
 | Command | `agent.focus` with `{ terminal: address }` (and `overlay.close`, only if `props().overlay` is missing) |
 
-Adding a prop or shared key is a change to this table and needs a note in [CHANGELOG.md](CHANGELOG.md) and on the
+Adding a prop or shared key is a change to this table and needs a `feat:` pull request (its title is the line in [CHANGELOG.md](CHANGELOG.md)) and a note on the
 board of every repository that bundles the mod.
 
 ## Syncing the portrait layout
