@@ -46,8 +46,8 @@ Work through it top to bottom. Each item is a command or a URL.
   each on Node 22 and 24) must be green. If Actions are unavailable on the private repository, run
   `node scripts/check-local.mjs` on a Windows and a Linux machine instead. Nothing has ever run on Windows or Linux:
   if a job is red, read `gh run view --log-failed` and fix the script, not the check.
-- [ ] **Decide what becomes public with the history.** `plans/` (the round plans, audits and logs) and every commit message after the first (more than twenty)
-  with a `Claude-Session:` link trailer are part of the repository. The privacy scan passes on them (no
+- [ ] **Decide what becomes public with the history.** `plans/` (the round plans, audits and logs) and the
+  commit messages (more than twenty carry a `Claude-Session:` link trailer) are part of the repository. The privacy scan passes on them (no
   personal data), but they show how the repository was made. Keep them, or publish from a fresh squashed
   repository without `plans/`.
 - [ ] **Author metadata.** The first commit (`Import from a working Herdr setup`) carries the author's real name

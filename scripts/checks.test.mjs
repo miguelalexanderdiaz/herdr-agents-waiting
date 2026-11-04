@@ -333,3 +333,68 @@ test("verify-install: Herdr's own generated files are ignored", () =>
     writeFileSync(join(modDir, "jsconfig.json"), "{}\n");
     assert.equal(verify([modDir]).status, 0);
   }));
+
+// ====================================================================================== check-docs
+// A small synthetic site, so these cases test the rules and do not depend on what the documentation says today.
+const PAGES = ["index", "install", "usage", "configuration", "how-it-works", "troubleshooting"];
+const CONSTS = { HOME: '"mods/attention-picker"', POLL_MS: "3000", READ_LINES: "60", READ_CONCURRENCY: "4", SEEN_KEY: '"attention.seen"', HOME_SPACE_NAME: '"~"', LIST_H: "320" };
+function page(name, body, { nav = PAGES, current = name } = {}) {
+  const li = nav.map((p) => `<li><a href="${p}.html"${p === current ? ' aria-current="page"' : ""}>${p}</a></li>`).join("");
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${name}</title></head>\n<body><nav class="site"><ul>${li}</ul></nav><main><h1 id="top">${name}</h1>\n${body}\n</main></body></html>\n`;
+}
+function docsFixture() {
+  const dir = mkdtempSync(join(tmpdir(), "hc-docs-"));
+  const w = (rel, text) => wr(dir, rel, text);
+  w("mods/attention-picker/main.js", Object.entries(CONSTS).map(([k, v]) => `const ${k} = ${v};`).join("\n") + "\n");
+  const rows = Object.entries(CONSTS).map(([k, v]) => `<tr><td><code>${k}</code></td><td>${v.replace(/"/g, "")}</td></tr>`).join("");
+  const bodies = {
+    configuration: `<div class="table-wrap" tabindex="0" role="region" aria-label="Constants"><table><thead><tr><th scope="col">Name</th><th scope="col">Value</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+    "how-it-works": '<p>It runs <code>hc read &lt;address&gt; --lines 60</code> every 3 seconds, at most 4 at a time.</p>',
+  };
+  for (const p of PAGES) w(`docs/${p}.html`, page(p, bodies[p] ?? "<p>Text.</p>"));
+  w("docs/404.html", page("404", "<p>Not found. <a href=\"index.html\">Home</a></p>", { nav: ["index"], current: "" }));
+  w("docs/.nojekyll", "");
+  w("README.md", "# Fixture\n\nRuns `hc read --lines 60` every 3 seconds, at most 4 at a time. See [usage](docs/usage.html#top).\n");
+  const png = readFileSync(join(REPO, "preview.png"));
+  mkdirSync(join(dir, "docs", "assets"), { recursive: true });
+  writeFileSync(join(dir, "preview.png"), png);
+  writeFileSync(join(dir, "docs", "assets", "preview.png"), png);
+  return dir;
+}
+async function withDocs(mutate, expectFragment) {
+  const dir = docsFixture();
+  try {
+    await mutate?.(dir);
+    const r = run("check-docs.mjs", dir);
+    if (expectFragment === undefined) assert.equal(r.status, 0, `check-docs should pass:\n${r.out}`);
+    else { assert.equal(r.status, 1, `check-docs should fail:\n${r.out}`); assert.ok(r.out.includes(expectFragment), `expected "${expectFragment}" in:\n${r.out}`); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+const pageEdit = (p, from, to) => (d) => sub(d, `docs/${p}.html`, from, to);
+
+test("check-docs: the fixture site passes", () => withDocs());
+test("check-docs: a stale --lines number in the README fails", () => withDocs((d) => sub(d, "README.md", "--lines 60", "--lines 50"), "README.md: says \"--lines 50\""));
+test("check-docs: a stale poll interval in a page fails", () => withDocs(pageEdit("how-it-works", "every 3 seconds", "every 2 seconds"), "docs/how-it-works.html: says \"every 2 seconds\""));
+test("check-docs: a stale concurrency number fails", () => withDocs(pageEdit("how-it-works", "at most 4 at a time", "at most 5 at a time"), "at most 5 at a time"));
+test("check-docs: a stale 'lines of history' number fails", () => withDocs((d) => append(d, "README.md", "\nThe screen plus 40 lines of history.\n"), "40 lines of history"));
+test("check-docs: a stale list height fails", () => withDocs((d) => append(d, "README.md", "\nThe list is at most 300 px tall.\n"), "300 px"));
+test("check-docs: another tick is allowed only if the code has it", async () => {
+  await withDocs((d) => append(d, "README.md", "\nIt sorts again every 30 seconds.\n"), "every 30 seconds");
+  await withDocs((d) => { append(d, "README.md", "\nIt sorts again every 30 seconds.\n"); append(d, "mods/attention-picker/main.js", "const TICK_MS = 30000;\n"); });
+});
+test("check-docs: a changed constant makes the configuration page stale", () => withDocs((d) => sub(d, "mods/attention-picker/main.js", "const POLL_MS = 3000;", "const POLL_MS = 2000;"), "the POLL_MS row does not show the value"));
+test("check-docs: a constant without a table row fails", () => withDocs(pageEdit("configuration", "<tr><td><code>LIST_H</code></td><td>320</td></tr>", ""), "no table row for LIST_H"));
+test("check-docs: a string constant must show its value", () => withDocs(pageEdit("configuration", "attention.seen", "attention.saw"), "the SEEN_KEY row"));
+
+test("check-docs: a page with a different navigation fails", () => withDocs(pageEdit("usage", '<li><a href="install.html">install</a></li>', ""), "every page must show the same pages"));
+test("check-docs: aria-current on the wrong page fails", () => withDocs(pageEdit("usage", ' aria-current="page"', ""), "0 navigation items have aria-current").then(() =>
+  withDocs(pageEdit("usage", '<li><a href="install.html">', '<li><a href="install.html" aria-current="page">'), "2 navigation items have aria-current")));
+test("check-docs: 404.html is exempt from the navigation set", () => withDocs());
+test("check-docs: a .table-wrap without tabindex fails", () => withDocs(pageEdit("configuration", ' tabindex="0" role="region"', ' role="region"'), "no tabindex"));
+test("check-docs: a <th> without scope fails", () => withDocs(pageEdit("configuration", '<th scope="col">Name</th>', "<th>Name</th>"), "a <th> has no scope"));
+test("check-docs: a long <pre> without tabindex fails", () => withDocs((d) => sub(d, "docs/usage.html", "<p>Text.</p>", `<pre>${"x".repeat(90)}</pre>`), "long <pre>"));
+test("check-docs: a broken link fails", () => withDocs(pageEdit("usage", "<p>Text.</p>", '<p><a href="nowhere.html">x</a></p>'), 'broken link "nowhere.html"'));
+test("check-docs: a link to a missing anchor fails", () => withDocs((d) => sub(d, "README.md", "usage.html#top", "usage.html#missing"), "heading/id that does not exist"));
+test("check-docs: a page that loads another origin fails", () => withDocs(pageEdit("usage", "</head>", '<link rel="stylesheet" href="https://cdn.example.invalid/x.css"></head>'), "external origin"));
+test("check-docs: a page without lang fails", () => withDocs(pageEdit("usage", '<html lang="en">', "<html>"), "has no lang"));
+test("check-docs: a stale docs/assets/preview.png fails", () => withDocs((d) => writeFileSync(path(d, "docs/assets/preview.png"), Buffer.from("not the same")), "differs from preview.png"));
