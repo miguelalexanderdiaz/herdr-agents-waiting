@@ -31,6 +31,7 @@ import {
 
 const HOME = "mods/attention-picker"; // this mod's folder, for its own assets
 const POLL_MS = 3000; // how often waiting agents' screens are re-read
+const TICK_MS = 30_000; // how often a quiet dialog redraws so "5m" becomes "6m"
 const READ_LINES = 60; // lines of each screen hc read returns
 const READ_CONCURRENCY = 4; // hc read calls in flight at once
 const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms, q: seq, sp: space id } }
@@ -68,6 +69,7 @@ export default class AttentionPicker extends View {
     });
     this.readPreviews(cx);
     cx.timer.every(POLL_MS, (cx) => this.readPreviews(cx));
+    cx.timer.every(TICK_MS, (cx) => { if (!this.dead) cx.notify(); });
     this.handle = cx.focus_handle();
     if (this.search) {
       this.input = InputState.new({ placeholder: "Search agents, spaces, programs…" });
@@ -225,7 +227,7 @@ export default class AttentionPicker extends View {
         if (k === "down" && picks.length) this.selected = moveSelection(picks, this.selected, 1);
         else if (k === "up" && picks.length) this.selected = moveSelection(picks, this.selected, -1);
         else if (k === "enter" && !this.search) { this.go(sel); if (sel?.kind !== "earlier") return; }
-        else if (k === "tab") this.setSort(nextSort(sort, e.modifiers?.shift ? -1 : 1));
+        else if (k === "tab") this.setSort(nextSort(sortNow(), e.modifiers?.shift ? -1 : 1)); // not `sort`: key repeat can fire twice before a render
         else if (!this.search && /^[1-9]$/.test(k) && !e.modifiers?.control && !e.modifiers?.platform) return this.go(picks.find((x) => numbers.get(x.key) === Number(k)));
         else return;
         cx.stop_propagation();
@@ -235,7 +237,7 @@ export default class AttentionPicker extends View {
         .child(div().flex_1().text_size(15).font_semibold().text_color(t.foreground).child(title))
         .child(h_flex().id("ap-sort").mr(10).h(22).px(8).gap(4).items_center().rounded(6).cursor_pointer()
           .text_size(11.5).text_color(t.muted).bg(t.raised).hover((el) => el.bg(t.hover).text_color(t.foreground))
-          .on_click((_e, cx) => { this.setSort(sortAfter); cx.notify(); })
+          .on_click((_e, cx) => { this.setSort(nextSort(sortNow())); cx.notify(); })
           .tooltip(`${SORT_TIP[sort]} · click or Tab for ${SORT_LABEL[sortAfter]}`)
           .child(div().text_color(t.dim).child("Sort"))
           .child(SORT_LABEL[sort]))

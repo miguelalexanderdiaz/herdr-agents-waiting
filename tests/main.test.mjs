@@ -173,6 +173,36 @@ test("Tab and Shift+Tab cycle attention.sort forward and back", () => {
   assert.deepEqual(sets, ["oldest", "space", "recent", "space"]);
 });
 
+test("pressing Tab twice before a render still takes two steps", () => {
+  const { view, cx } = open(mixed());
+  const root = nodeOf(view.render());
+  const [handler] = callsOf(root, "on_key_down")[0];
+  handler(KEY("tab"), cx);
+  handler(KEY("tab"), cx);
+  assert.deepEqual(herdr.log.sets.map(([, v]) => v), ["oldest", "space"]);
+});
+
+test("the Sort pill steps from the current sort, not the one drawn", () => {
+  const { render, cx } = open(mixed());
+  const pill = find(render(), (n) => callsOf(n, "id").some(([id]) => id === "ap-sort"));
+  const [click] = callsOf(pill, "on_click")[0];
+  click({}, cx);
+  click({}, cx);
+  assert.deepEqual(herdr.log.sets.map(([, v]) => v), ["oldest", "space"]);
+});
+
+test("a 30 s timer redraws a quiet dialog, and stops after the dialog is dismissed", () => {
+  const { cx, key } = open(mixed());
+  const ticks = cx.everys.filter(([ms]) => ms === 30_000);
+  assert.equal(ticks.length, 1);
+  const before = cx.notifies;
+  ticks[0][1](cx);
+  assert.equal(cx.notifies, before + 1);
+  key("escape");
+  ticks[0][1](cx);
+  assert.equal(cx.notifies, before + 1, "no redraw once dismissed");
+});
+
 test("Escape closes the dialog without picking", () => {
   const { key } = open(mixed());
   key("escape");
