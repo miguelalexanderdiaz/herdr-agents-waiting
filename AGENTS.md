@@ -2,8 +2,8 @@
 
 For AI agents that install, adapt, test or edit this repository. Humans: start with [README.md](README.md).
 
-If you are a round agent working on this repo: read `plans/round-*/SUMMARY.md` (what was decided and what is open) and
-the shared board named in your task before you change anything.
+If you are a round agent working on this repo: read the round notes in `plans/round-*/SUMMARY.md` (local only, not
+tracked) when you have them, and the shared board named in your task, before you change anything.
 
 ## What this repo is
 
@@ -27,7 +27,6 @@ from here after each round (see "Syncing the portrait layout").
 | `tests/` | `node:test` tests: the pure modules, `main.js` under stand-in modules (`tests/helpers/`), and the repository scripts |
 | `scripts/` | `validate.mjs`, `privacy-scan.mjs`, `check-docs.mjs`, `check-local.mjs` (the one-shot gate that runs all of them), `ci.workflow.yml` |
 | `docs/` | the GitHub Pages site (plain HTML and CSS) |
-| `plans/round-N/` | each improvement round's plan, role logs and summaries |
 
 Herdr's own reference is in your Herdr app home (`~/.config/herdr-app`): its `AGENTS.md`, `herdr.d.ts` and
 `gpui-kit.d.ts`. Read those before changing the mod.
@@ -139,7 +138,7 @@ The portrait layout bundles this mod and opens it from its own bar. Keep these e
 | Prop `overlay` | supplied by Herdr; the mod closes itself with `closeOverlay(props().overlay)` and falls back to the `overlay.close` command when it is missing |
 | Command | `agent.focus` with `{ terminal: address }` (and `overlay.close`, only if `props().overlay` is missing) |
 
-Adding a prop or shared key is a change to this table and needs a note in [CHANGELOG.md](CHANGELOG.md) and on the
+Adding a prop or shared key is a change to this table and needs a `feat:` pull request (its title is the line in [CHANGELOG.md](CHANGELOG.md)) and a note on the
 board of every repository that bundles the mod.
 
 ## Syncing the portrait layout

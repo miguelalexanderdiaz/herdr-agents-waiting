@@ -1,11 +1,10 @@
 # Changelog
 
 All notable changes to the Agents waiting mod. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-The mod does not carry a version number: Herdr defines no version field for mods and `herdr-app check` ignores one, so
-the entries below are grouped by when they landed. Nothing here has a release number or date until the repository is
-published. The plans, audits and logs behind each round are in [plans/](plans/) for the curious.
+The mod does not carry a version number: Herdr defines no version field for mods and `herdr-app check` ignores one, so a
+release number names the repository, not the mod. Releases are written here by [release-please](https://github.com/googleapis/release-please) from the titles of the pull requests merged since the last release (Conventional Commits, see CONTRIBUTING.md), newest first, and tagged `vX.Y.Z` on GitHub. Below them is the hand-written history from before the first release.
 
-## [Unreleased]
+## [Before the first release]
 
 ### Fixed
 

@@ -24,3 +24,6 @@ desktop.ini
 # Screenshots taken with `herdr-app shot` (default name) and local assistant state; review before adding one
 herdr-shot*.png
 .claude/
+
+# Round plans, audits and logs of the improvement agents: kept locally, not published.
+/plans/
