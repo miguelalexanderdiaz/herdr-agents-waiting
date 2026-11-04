@@ -4,6 +4,21 @@ All notable changes to the Agents waiting mod. The format follows [Keep a Change
 The mod does not carry a version number: Herdr defines no version field for mods and `herdr-app check` ignores one, so a
 release number names the repository, not the mod. Releases are written here by [release-please](https://github.com/googleapis/release-please) from the titles of the pull requests merged since the last release (Conventional Commits, see CONTRIBUTING.md), newest first, and tagged `vX.Y.Z` on GitHub. Below them is the hand-written history from before the first release.
 
+## 0.1.0 (2026-11-04)
+
+
+### Bug Fixes
+
+* **privacy:** accept GitHub's merge message in the history scan ([#4](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues/4)) ([bc5f01d](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/commit/bc5f01d5558f76525c138dae1073a3c56817ab74))
+
+
+### Documentation
+
+* a short install page, the details folded ([#12](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues/12)) ([14d4a65](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/commit/14d4a653fa412dfd5e3b1aafb8d266e4a4e7010c))
+* add a documentation button to the README ([#7](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues/7)) ([c6b0abc](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/commit/c6b0abcc24dfe721eec0b814bd50dcdca8ab0006))
+* fewer pages, shorter privacy ([#13](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues/13)) ([5d736ce](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/commit/5d736ceff70c2e5529f00943c38ef0f56f044a5a))
+* restyle the documentation site with the Dragon design system ([#5](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues/5)) ([1a4861a](https://github.com/miguelalexanderdiaz/herdr-agents-waiting/commit/1a4861a4c988ce64d506affd05a68bf051c0d741))
+
 ## [Before the first release]
 
 ### Fixed
