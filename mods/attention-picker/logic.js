@@ -126,20 +126,38 @@ const okTime = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
 // Tab times should be ms since the epoch; a value that looks like seconds is scaled.
 const toMs = (v) => (okTime(v) ? (v < 1e11 ? v * 1000 : v) : null);
 
+// A shared time is ignored when the tab shows a change this much newer (ms).
+export const STALE_SLACK = 10_000;
+
 // When this agent's current status began, best source first:
 //   shared  - the shared "agents.since" value for its address (the portrait layout's tracker)
 //   tab     - the tab's working_since (working) or changed_at (anything else)
 //   seen    - this mod's own first-seen record { s: statusGroup, at } (only if the group still matches)
 // Returns ms since the epoch (never in the future), or null.
-export function statusSince({ shared, tab, seen, status, now }) {
+//
+// A shared map is persisted, so one left behind by a layout that is no longer
+// running can name an old time for an agent that has changed state since. It is
+// ignored for a blocked or working agent that is alone in its tab (`tabAgents`
+// is 1) when the tab proves a newer change (changed_at for blocked,
+// working_since for working) by more than STALE_SLACK: then no other agent
+// explains the tab's time. With `tabAgents` missing the shared value always
+// wins, as before. This never lengthens a wait and does not apply to the
+// finished or idle agents.
+export function statusSince({ shared, tab, seen, status, now, tabAgents }) {
   const cap = (v) => Math.min(v, now);
-  if (okTime(shared)) return cap(shared);
+  if (okTime(shared) && !(tabAgents === 1 && tabProvesNewer(tab, status, shared))) return cap(shared);
   if (tab) {
     const v = toMs(status === "working" && okTime(tab.working_since) ? tab.working_since : tab.changed_at);
     if (v) return cap(v);
   }
   if (seen && seen.s === statusGroup(status) && okTime(seen.at)) return cap(seen.at);
   return null;
+}
+
+function tabProvesNewer(tab, status, shared) {
+  if (!tab) return false;
+  const at = status === "blocked" ? toMs(tab.changed_at) : status === "working" ? toMs(tab.working_since) : null;
+  return at !== null && at - shared > STALE_SLACK;
 }
 
 const MAX_SEEN = 500;
@@ -199,6 +217,8 @@ export function buildRows({ agents, spaces = [], sharedSince = {}, seen = {}, qu
   const since = sharedSince && typeof sharedSince === "object" ? sharedSince : {};
   const rank = (a) => ORDER[a.status] ?? 3;
   const hasQuery = String(query ?? "").trim() !== "";
+  const perTab = new Map(); // tab id -> how many agents it holds (all of them, not only the matches)
+  for (const a of agents) perTab.set(a.tab, (perTab.get(a.tab) ?? 0) + 1);
 
   const all = agents
     .map((a, idx) => {
@@ -206,7 +226,7 @@ export function buildRows({ agents, spaces = [], sharedSince = {}, seen = {}, qu
       const program = a.program?.name || a.app || "";
       return {
         a, idx, name, program, key: a.address,
-        since: statusSince({ shared: since[a.address], tab: tabs.get(a.tab), seen: seen[a.address], status: a.status, now }),
+        since: statusSince({ shared: since[a.address], tab: tabs.get(a.tab), seen: seen[a.address], status: a.status, now, tabAgents: perTab.get(a.tab) }),
         hay: [name, program, a.space_name, a.tab_name, a.title, WORD[a.status], a.status].filter(Boolean).join(" "),
       };
     })

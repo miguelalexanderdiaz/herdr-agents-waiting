@@ -228,11 +228,18 @@ test("without an overlay id it falls back to the overlay.close command, before a
 
 // ---- the shared-key and storage contract --------------------------------------
 
-test("a shared agents.since time wins over the tab's", () => {
+test("a shared agents.since time wins over the tab's when the tab does not show a newer change", () => {
   const data = mixed();
-  data.spaces[0].tabs[0] = tab("tab1", { changed_at: Date.now() - 10 * MIN });
+  data.spaces[0].tabs[0] = tab("tab1", { changed_at: Date.now() - 3 * HOUR - MIN });
   const { render } = open({ ...data, shared: { "agents.since": { t1: Date.now() - 3 * HOUR } } });
   assert.match(rowText(render(), "t1"), /\b3h\b/);
+});
+
+test("a stale agents.since is ignored for a lone blocked agent whose tab changed since", () => {
+  const data = mixed();
+  data.spaces[0].tabs[0] = tab("tab1", { changed_at: Date.now() - 5 * MIN });
+  const { render } = open({ ...data, shared: { "agents.since": { t1: Date.now() - 3 * 24 * HOUR } } });
+  assert.match(rowText(render(), "t1"), /\b5m\b/);
 });
 
 test("the only shared key written is attention.sort, and agents.since is never written", () => {

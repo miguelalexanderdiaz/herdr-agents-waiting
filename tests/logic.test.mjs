@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   DAY, pickSearch, duration, clean, nameOf, normalizeSort, nextSort, statusGroup, statusSince,
   parseSeen, trackSeen, matchesQuery, buildRows, emptyState, resolveSelection, moveSelection,
-  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK,
+  createPreviewReader, isPick, contrast, inkOn, headline, normalizeHex, resolveSpaceColor, MARK, STALE_SLACK,
 } from "../mods/attention-picker/logic.js";
 
 const NOW = 1_800_000_000_000;
@@ -482,4 +482,68 @@ test("resolveSpaceColor: junk never throws and falls back to the default, then d
 test("resolveSpaceColor: the home space is always dim", () => {
   assert.equal(color("#ff0000", { isHome: true }), THEME.dim);
   assert.equal(color(undefined, { isHome: true }), THEME.dim);
+});
+
+// ---- stale shared agents.since ---------------------------------------------------
+
+test("statusSince: a fresh shared time is kept even when the tab is slightly newer", () => {
+  const shared = NOW - 20 * MIN;
+  const t = tab({ changed_at: shared + STALE_SLACK });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 1 }), shared, "exactly the slack: kept");
+  assert.equal(statusSince({ shared, tab: tab({ changed_at: shared + 1000 }), status: "blocked", now: NOW, tabAgents: 1 }), shared);
+});
+
+test("statusSince: a stale shared time loses to a newer tab change for a lone blocked agent", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - 4 * MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 1 }), NOW - 4 * MIN);
+});
+
+test("statusSince: same for a lone working agent, judged by working_since", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ working_since: NOW - 6 * MIN, changed_at: NOW - MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "working", now: NOW, tabAgents: 1 }), NOW - 6 * MIN);
+  assert.equal(statusSince({ shared, tab: tab({ changed_at: NOW - MIN }), status: "working", now: NOW, tabAgents: 1 }), shared,
+    "no working_since: the tab proves nothing, shared kept");
+});
+
+test("statusSince: the guard never applies to finished or idle agents", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - MIN, working_since: NOW - MIN });
+  for (const status of ["done", "idle"]) assert.equal(statusSince({ shared, tab: t, status, now: NOW, tabAgents: 1 }), shared);
+});
+
+test("statusSince: a tab with several agents or an unknown count keeps the shared time", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  const t = tab({ changed_at: NOW - MIN });
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW, tabAgents: 2 }), shared);
+  assert.equal(statusSince({ shared, tab: t, status: "blocked", now: NOW }), shared, "round-1 behavior");
+});
+
+test("statusSince: a missing tab or an unknown tab time keeps the shared time", () => {
+  const shared = NOW - 3 * 24 * 3600_000;
+  assert.equal(statusSince({ shared, status: "blocked", now: NOW, tabAgents: 1 }), shared);
+  assert.equal(statusSince({ shared, tab: tab(), status: "blocked", now: NOW, tabAgents: 1 }), shared);
+});
+
+test("buildRows: a stale shared map is ignored for a lone blocked agent, kept beside another agent", () => {
+  const stale = NOW - 5 * 24 * 3600_000;
+  const lone = agent({ status: "blocked", tab: "solo", space: "s1" });
+  const shared = agent({ status: "blocked", tab: "pair", space: "s1" });
+  const mate = agent({ status: "working", tab: "pair", space: "s1" });
+  const spaces = [space("s1", "api", [tab({ id: "solo", changed_at: NOW - 2 * MIN }), tab({ id: "pair", changed_at: NOW - 2 * MIN })])];
+  const sharedSince = { [lone.address]: stale, [shared.address]: stale, [mate.address]: stale };
+  const rows = buildRows({ agents: [lone, shared, mate], spaces, sharedSince, now: NOW });
+  const since = (a) => rows.find((r) => r.key === a.address).since;
+  assert.equal(since(lone), NOW - 2 * MIN);
+  assert.equal(since(shared), stale, "another agent in the tab explains the newer tab time");
+});
+
+test("buildRows: the tab's agent count ignores the search filter", () => {
+  const stale = NOW - 5 * 24 * 3600_000;
+  const a = agent({ status: "blocked", tab: "pair", title: "alpha" });
+  const b = agent({ status: "working", tab: "pair", title: "beta" });
+  const spaces = [space("s1", "api", [tab({ id: "pair", changed_at: NOW - MIN })])];
+  const rows = buildRows({ agents: [a, b], spaces, sharedSince: { [a.address]: stale }, query: "alpha", now: NOW });
+  assert.equal(rows.find((r) => r.key === a.address).since, stale);
 });
