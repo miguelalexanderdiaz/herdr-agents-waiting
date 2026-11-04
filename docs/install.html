@@ -33,7 +33,7 @@
 <thead><tr><th scope="col">OS</th><th scope="col">Status</th></tr></thead>
 <tbody>
 <tr><td>macOS</td><td>The original mod ran in the author's Herdr. The changes since then have passed <code>herdr-app check</code> and unit tests, and have not been watched in a live window.</td></tr>
-<tr><td>Linux, Windows</td><td>Not run in Herdr. The mod is plain JavaScript with no operating-system calls, and its pure logic runs under Node anywhere. A CI definition for macOS, Linux and Windows is in <code>scripts/ci.workflow.yml</code>; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked. Please report what you find.</td></tr>
+<tr><td>Linux, Windows</td><td>Not run in Herdr. The mod is plain JavaScript with no operating-system calls, and its pure logic runs under Node anywhere. CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. Please report what you find.</td></tr>
 </tbody>
 </table></div>
 
@@ -94,7 +94,7 @@ ask me before replacing any key I already use. Then run herdr-app check on the m
 <tr><td>The unit of a tab's <code>changed_at</code> and what it marks.</td><td>Note when an agent in a tab of its own went blocked, then open the dialog: its time should match your wall clock.</td></tr>
 <tr><td>Polling stops when the dialog closes.</td><td>With a blocked agent waiting, close the dialog and watch for <code>hc read</code> calls with a process monitor: none should start. It is written so (the poll lives in the dialog's own view), but nobody has watched.</td></tr>
 <tr><td>The palette entry for <code>mod.open</code>.</td><td>Open the command palette, search "mod.open" or "Open mod", and see whether it asks for a name.</td></tr>
-<tr><td>Linux and Windows.</td><td>Install on that system and open the dialog; A CI definition for macOS, Linux and Windows is in <code>scripts/ci.workflow.yml</code>; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked.</td></tr>
+<tr><td>Linux and Windows.</td><td>Install on that system and open the dialog; CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked.</td></tr>
 </tbody>
 </table></div>
 

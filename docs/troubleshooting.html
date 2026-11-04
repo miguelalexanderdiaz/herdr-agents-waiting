@@ -77,7 +77,7 @@
 <p>On Windows the quoting of the JSON form depends on the shell (PowerShell and cmd.exe treat quotes differently, and PowerShell may need the inner quotes escaped). This has not been tried on Windows. The simple routes are the key, the command palette, or the flag form above.</p>
 
 <h2 id="windows-linux">Windows or Linux</h2>
-<p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. A CI definition for macOS, Linux and Windows is in <code>scripts/ci.workflow.yml</code>; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
+<p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
 
 <h2 id="report">Reporting a problem</h2>
 <p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a> with your Herdr version, OS, what you pressed and what you saw. Do not paste terminal contents you would not want public.</p>

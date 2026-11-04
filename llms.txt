@@ -27,7 +27,7 @@ This is a mod for the Herdr desktop app, not a library or a web app. Install by 
 ## Checks
 
 - `npm test` (runs `node --test`, Node 22+; never `node --test tests/`), `node scripts/validate.mjs`, `node scripts/privacy-scan.mjs`, `node scripts/check-docs.mjs`; `node scripts/check-local.mjs` runs them all.
-- A CI definition for macOS, Linux and Windows is in scripts/ci.workflow.yml; it is not enabled until the owner installs it.
+- CI is defined in scripts/ci.workflow.yml (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet.
 - `herdr-app check <absolute path to mods/attention-picker>` (needs the desktop app; renders once only).
 
 ## Optional

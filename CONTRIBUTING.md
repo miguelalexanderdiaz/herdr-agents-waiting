@@ -26,9 +26,9 @@ node scripts/check-local.mjs      # all of the above in one go, then herdr-app c
 herdr-app check /absolute/path/to/your/clone/mods/attention-picker
 ```
 
-Run `npm test`, never `node --test tests/` (a folder argument fails on Node 22 and later). A CI definition that runs
-the first four on macOS, Linux and Windows is in `scripts/ci.workflow.yml`; it is not enabled until the owner
-installs it, so until a run is green treat Linux and Windows as unchecked. `herdr-app check` needs the desktop app,
+Run `npm test`, never `node --test tests/` (a folder argument fails on Node 22 and later). CI is defined in
+`scripts/ci.workflow.yml` (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs
+it and has not run yet, so until a run is green treat Linux and Windows as unchecked. `herdr-app check` needs the desktop app,
 so it is a local gate: run it on every change to `mods/attention-picker` and say so in your pull request. It validates the mod and
 renders it once; it does not run later timers or screen reads, so try the dialog in the app too if you can. Do not
 use `herdr-app do`, `shot` or `status` from scripts or automation, and never start a second app.

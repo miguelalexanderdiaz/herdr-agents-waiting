@@ -57,8 +57,8 @@ Round 2 entries are added below as each part lands; the section is filled in at 
 
 - The original mod ran in the author's Herdr on macOS. The round 1 changes passed `herdr-app check` and the unit tests
   only; they have not been watched in a live window.
-- Not run in Herdr on Linux or Windows. A CI definition for macOS, Linux and Windows is in `scripts/ci.workflow.yml`;
-  it is not enabled until the owner installs it, so treat those systems as unchecked.
+- Not run in Herdr on Linux or Windows. CI is defined in `scripts/ci.workflow.yml` (Linux, Windows and macOS, each on Node 22 and 24);
+  it is enabled when the owner installs it and has not run yet, so treat those systems as unchecked.
 - Status times from the local record are estimates: the dialog cannot see changes while it is closed.
 - A stale shared `agents.since` left by a layout you stopped using can still win.
 

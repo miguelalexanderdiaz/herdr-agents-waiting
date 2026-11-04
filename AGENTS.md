@@ -84,9 +84,10 @@ herdr-app check <absolute path to mods/attention-picker>   # Herdr validates the
 
 Use `npm test` or plain `node --test`. Do not pass the folder (`node --test tests/`): on Node 22.14 and 26.5 (the
 versions it was run on) a directory argument is loaded as a module and fails. `package.json` declares Node `>=22`;
-older Node was never tried. A CI definition for macOS, Linux and Windows is in `scripts/ci.workflow.yml`; it is not
-enabled until the owner installs it (the token that pushes this repo cannot write `.github/workflows/`). Until a run
-is green, treat Linux and Windows as unchecked. `herdr-app check` is a local gate because it is the desktop binary.
+older Node was never tried. CI is defined in `scripts/ci.workflow.yml` (Linux, Windows and
+macOS, each on Node 22 and 24); it is enabled when the owner installs it (the token that pushes this repo cannot write
+`.github/workflows/`; see `.github/PUBLISH-CHECKLIST.md`, step 0) and has not run yet. Until a run is green, treat
+Linux and Windows as unchecked. `herdr-app check` is a local gate because it is the desktop binary.
 
 Do not drive the running app while testing: no `herdr-app do`, `shot` or `status`, and do not start a second app.
 `herdr-app check` writes `gpui-kit.d.ts` and `jsconfig.json` into the mod folder; they are git-ignored. Never
@@ -175,8 +176,8 @@ Run from the repository root. Each command should print what the claim says.
 
 ## Known limits
 
-- Not run in Herdr on Linux or Windows. The CI definition (`scripts/ci.workflow.yml`) is not enabled yet; unit tests
-  of the pure modules are the only thing known to run there.
+- Not run in Herdr on Linux or Windows. CI is defined in `scripts/ci.workflow.yml` and has not run yet; until it does,
+  nothing is known to run there.
 - Status times from the local first-seen record are estimates: the dialog cannot observe changes while closed.
 - Previews are only tested on Claude Code style screens (see the fixtures in `tests/ask.test.mjs`).
 - A shared `agents.since` left behind by a layout you stopped using can be stale and still win; only a partial guard

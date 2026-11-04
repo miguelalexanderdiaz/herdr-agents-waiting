@@ -117,7 +117,7 @@ More in the documentation site (plain HTML in [docs/](docs/index.html): [install
 | Other mods | None. |
 | Node, npm, network | None to run it. Node 22 or newer only to run this repo's tests. |
 | macOS | The original mod ran in the author's Herdr. The changes since then are not yet watched in a live window. |
-| Linux, Windows | Not run in Herdr. The mod is plain JavaScript with no operating-system calls. A CI definition for macOS, Linux and Windows is in `scripts/ci.workflow.yml`; it is not enabled until the owner installs it. Until a run is green, treat Linux and Windows as unchecked. |
+| Linux, Windows | Not run in Herdr. The mod is plain JavaScript with no operating-system calls. CI is defined in `scripts/ci.workflow.yml` (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. |
 
 ## Verification status
 
