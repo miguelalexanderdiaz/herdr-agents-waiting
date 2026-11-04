@@ -21,16 +21,28 @@ and copyright line ship next to the files in docs/assets/fonts/:
 The woff2 files are the latin variable builds published by the Fontsource
 project (@fontsource-variable packages, version 5.3; all axes for Fraunces,
 the weight axis for the other two), copied unchanged.
-Otherwise none bundled. The two icons in mods/attention-picker
-(spinner.svg, search.svg) and the preview illustration (preview.png, drawn from
-scripts/preview/preview.svg) were made for this project. The illustration is
-text drawn in the first font the renderer finds from this list in
-scripts/preview/preview.svg: Geist, Inter, Segoe UI, DejaVu Sans, Liberation Sans,
-Arial, then any sans-serif. Which one it was is not recorded in the PNG. Geist,
-Inter, DejaVu Sans and Liberation Sans are open fonts; Segoe UI and Arial are
-system fonts that are not bundled or distributed here, only rendered into the
-picture. A real screenshot replaces the illustration before the repository is
-published (see .github/PUBLISH-CHECKLIST.md).
+The two icons in mods/attention-picker (spinner.svg, search.svg) were made for
+this project.
+
+The pictures of the documentation (preview.png, docs/assets/preview.png, drawn
+from scripts/preview/preview.svg, and docs/assets/features/*.svg) are drawings
+made for this project by scripts/preview/make-pictures.mjs, with made-up data.
+They inline the paths of six program icons shipped with Herdr, copied unchanged
+into scripts/preview/icons/:
+  - git.svg, nvim.svg, gemini.svg: Simple Icons (https://simpleicons.org),
+    CC0 1.0. Git, Neovim and Gemini are their owners' trademarks.
+  - shell.svg: Lucide (https://lucide.dev), ISC License, with MIT-licensed
+    Feather-derived icons; full notice in scripts/preview/icons/LICENSE-Lucide.txt.
+  - claude.svg, codex.svg: LobeHub icons (MIT); full notice in
+    scripts/preview/icons/LICENSE-LobeHub.txt. Claude and Codex are their
+    owners' trademarks. No trademark rights are granted.
+Their text is drawn in the first font the renderer finds from these lists:
+Geist, Inter, Segoe UI, DejaVu Sans, Liberation Sans, Arial, then any
+sans-serif; and for terminal text JetBrains Mono, Menlo, Consolas, DejaVu Sans
+Mono, then any monospace. Which one was used is not recorded. Segoe UI, Arial,
+Menlo and Consolas are system fonts that are not bundled or distributed here,
+only rendered into the PNG. A real screenshot replaces the illustration before
+the repository is published (see .github/PUBLISH-CHECKLIST.md).
 
 Copies of the mod folder: keep the "SPDX-License-Identifier: Apache-2.0" and
 copyright lines at the top of main.js, logic.js and ask.js, and ship the LICENSE

@@ -10,14 +10,24 @@ pick one with the keyboard or the mouse, and Herdr takes you to it.
 
 *An illustration drawn with made-up data, not a screenshot.*
 
-- **Needs you first.** Blocked agents, then finished ones, each group in the order Herdr last saw them change, with a
+- ![The top of the dialog: one agent that needs you and one that finished, each with its preview and wait time (made-up agents)](docs/assets/features/needs-you.svg)
+
+  **Needs you first.** Blocked agents, then finished ones, each group in the order Herdr last saw them change, with a
   preview of the question.
-- **Everyone else below a rule**, grouped by space, with the space's color. Agents idle for over a day fold into an
+- ![The lower list: other agents grouped by space under their colored tiles, then the earlier fold (made-up agents)](docs/assets/features/everyone-else.svg)
+
+  **Everyone else below a rule**, grouped by space, with the space's color. Agents idle for over a day fold into an
   "earlier" line.
-- **Search** across name, program, space, tab, title and the status words. Every word must match.
-- **Three sorts** for the lower list: Recent, Oldest, Space order. `Tab` cycles them (`Shift+Tab` goes back) and the
+- ![The search box with "api" typed: only the matching agents remain (made-up agents)](docs/assets/features/search.svg)
+
+  **Search** across name, program, space, tab, title and the status words. Every word must match.
+- ![The lower list in the Recent, Oldest and Space order sorts (made-up agents)](docs/assets/features/sorts.svg)
+
+  **Three sorts** for the lower list: Recent, Oldest, Space order. `Tab` cycles them (`Shift+Tab` goes back) and the
   choice is remembered.
-- **Standalone.** One folder and one key. No other mod is needed.
+- ![A terminal showing the mod's one folder and its one key in keys.json](docs/assets/features/standalone.svg)
+
+  **Standalone.** One folder and one key. No other mod is needed.
 
 ## Status
 
