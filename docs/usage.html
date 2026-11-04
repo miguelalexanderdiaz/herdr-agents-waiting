@@ -28,7 +28,7 @@
 
 <h2 id="reading">Reading the dialog</h2>
 <ol>
-<li><strong>Title.</strong> "N agents need you" when some are blocked, otherwise "N finished" when some are done, otherwise "Nothing needs you right now". With no agents at all it says "No agents running" and, under it, "Start one and it will show here".</li>
+<li><strong>Title.</strong> "N agents need you" when some are blocked, otherwise "N finished" when some are done, otherwise "Nothing needs you right now". With no agents at all it says "No agents running" and, under it, "Start one and it will show here". The title counts all your agents, whatever you type in the search box.</li>
 <li><strong>Needs you, then finished.</strong> A plain list, blocked agents first, then done ones, each group in the order Herdr last saw the agents change. Each has two lines. The first has a status dot, the agent's name, the status word (<em>needs you</em> or <em>finished</em>), how long it has been in that status, and its space and tab. The second line is a preview of what the agent asked or said.</li>
 <li><strong>A rule.</strong> Shown only when there are agents on both sides of it.</li>
 <li><strong>Everyone else</strong> (working, idle, unknown), grouped under their space. The space's initial sits on its color, drawn in white or near-black, whichever reads better; the color comes from Herdr's shared <code>space.colors</code> and is teal when none is set. A working agent shows a spinner.</li>
@@ -61,24 +61,24 @@
 <thead><tr><th scope="col">Sort</th><th scope="col">Order</th></tr></thead>
 <tbody>
 <tr><td>Recent</td><td>Latest status change first. This is the default. Agents with no known start come last.</td></tr>
-<tr><td>Oldest</td><td>Longest in its status first. Agents with no known start come first.</td></tr>
+<tr><td>Oldest</td><td>Longest in its status first. Agents with no known start come last, as under Recent.</td></tr>
 <tr><td>Space order</td><td>As the space tree lists them.</td></tr>
 </tbody>
 </table></div>
 <p>Spaces follow their first agent in the chosen order. The choice is kept in Herdr's shared value <code>attention.sort</code>, so it survives a restart and other mods can read it.</p>
 
 <h2 id="times">Waiting times</h2>
-<p>The time next to a status is how long the agent has been in that status. Where the start comes from, best first:</p>
+<p>The time next to a status is how long the agent has been in that status, and it refreshes every 30 seconds while the dialog is open (that redraw has not been watched in the live app yet). Where the start comes from, best first:</p>
 <ol>
-<li>Herdr's shared <code>agents.since</code>, if another mod publishes it (the portrait layout does).</li>
+<li>Herdr's shared <code>agents.since</code>, if another mod publishes it (the portrait layout does). It is ignored for a blocked or working agent that is alone in its tab when the tab shows a change more than 10 seconds newer, because a value left behind by a layout you stopped using can be stale.</li>
 <li>The agent's tab: its <code>working_since</code> for a working agent, its <code>changed_at</code> (when something in the tab last changed state) for any other. It is exact for a tab with one agent and approximate for a tab with several.</li>
 <li>A first-seen time the mod records itself: the first moment the dialog saw this agent in its current status.</li>
 </ol>
 <div class="note warn"><p><strong>Limit.</strong> The dialog only exists while it is open, so it cannot see changes that happen while it is closed. When the first two sources have nothing, an agent that went idle yesterday looks new until the next time you open the dialog, and its time counts from then. Times are estimates.</p></div>
 
 <h2 id="previews">Previews</h2>
-<p>For blocked and finished agents the second line shows what the agent asked or said, read from the end of its terminal's text (the screen plus up to 60 lines of history above it; only the last 40 non-empty lines are looked at). For a blocked agent it is the last line that ends in a question mark, or a yes/no hint such as <code>(y/n)</code> or <code>[y/N]</code>; for a finished agent it is the agent's last message, skipping tool-call lines. Until the first read returns the line shows an ellipsis.</p>
-<p>This is best effort. The recognized shapes are the ones in the test fixtures, drawn by Claude Code style screens: a question box, a numbered choice, a yes/no hint, and "&bull;" message lines. Other agents may show a blank second line; the row still works.</p>
+<p>For blocked and finished agents the second line shows what the agent asked or said, read from the end of its terminal's text (the screen plus up to 60 lines of history above it; only the last 40 non-empty lines are looked at). For a blocked agent it is the last line that ends in a question mark, or a yes/no hint such as <code>(y/n)</code> or <code>[y/N]</code>; for a finished agent it is the agent's last message, skipping tool-call lines. Until the first read returns the line shows an ellipsis. A screen that has not changed is read again about every 30 seconds instead of every 3; when the agent's status or Herdr's sequence number for it changes, it is read at once.</p>
+<p>This is best effort. The recognized shapes are the ones in the test fixtures, drawn by Claude Code style screens: a question box, a numbered choice, a yes/no hint, and "&bull;" message lines that start in the first column (an indented bullet inside a message is not taken as the message). A question that appears without Herdr's sequence number moving can take up to about 30 seconds to show. Other agents may show a blank second line; the row still works.</p>
 
 </main>
 <footer class="site">

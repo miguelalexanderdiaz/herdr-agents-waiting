@@ -54,14 +54,19 @@ them.
 
 ## Commits and pull requests
 
+- The [pull request template](.github/PULL_REQUEST_TEMPLATE.md) lists what a reviewer will check.
+- In the CI definition, pull requests skip the check of commit author e-mail addresses (they are yours and public in
+  git); the content of every added line and every commit message is still scanned. Do not put an address in either.
 - A clear subject line and a body that says why.
 - One logical change per commit.
 - Do not rewrite shared history or force-push `main`.
 
 ## Reporting a problem
 
-Open an issue with your Herdr version (`herdr-app --version`), your OS, what you pressed and what you saw. Do not paste
-terminal contents you would not want public.
+Open an issue with the [bug report form](.github/ISSUE_TEMPLATE/bug_report.yml): your Herdr version
+(`herdr-app --version`), your OS, what you pressed and what you saw. Do not paste terminal contents you would not want
+public. For a security problem, such as the mod reaching something it says it does not, follow
+[.github/SECURITY.md](.github/SECURITY.md) and report it privately.
 
 ## License
 

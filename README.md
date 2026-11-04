@@ -65,11 +65,15 @@ way. Agents: read [AGENTS.md](AGENTS.md).
    ```
 
 4. Check it: `herdr-app check ~/.config/herdr-app/mods/attention-picker`. Herdr loads mods and keys live, so there
-   is no restart.
+   is no restart. Then, from a clone of this repository, run
+   `node scripts/verify-install.mjs ~/.config/herdr-app/mods/attention-picker --home ~/.config/herdr-app`
+   (Node 22 or newer; or set `HERDR_APP_HOME` instead of `--home`). It checks the folder name against `HOME`, the
+   icons, `mod.json` and that your `keys.json` has a key for `mod.open:attention-picker`. It is read-only.
 5. Press `Ctrl`+`Shift`+`A`.
 
-`herdr-app check` renders the mod once. It does not run the timers or screen reads that start later, and it passes a
-renamed folder whose `HOME` constant was not changed, so also open the dialog in the app.
+`herdr-app check` proves the code loads and renders once. It does not run the timers or screen reads that start
+later, and it passes a broken `mod.json` or a renamed folder whose `HOME` constant was not changed; that is what
+`verify-install.mjs` is for. Also open the dialog in the app.
 
 **Name clash.** If you already have a mod called `attention-picker`, do not overwrite it. Install this one under
 another name and change three places: the folder, the `HOME` constant at the top of `main.js`, and the name in your
@@ -97,12 +101,17 @@ another name and change three places: the folder, the `HOME` constant at the top
 | `1`-`9` | Jump to a numbered agent, only in the keys-only variant (`search: false`). |
 
 The time beside a status is how long the agent has been in it. The mod takes the start from, in order: the shared
-`agents.since` value if another mod publishes it, the agent's tab `changed_at` from Herdr, or the first time the
-dialog saw the agent in that status. The dialog only exists while it is open, so it cannot see changes that happen
-while it is closed: with only the third source, an agent that went idle yesterday counts from your next open.
+`agents.since` value if another mod publishes it (ignored for a blocked or working agent that is alone in its tab
+when the tab shows a change more than 10 seconds newer), the agent's tab `changed_at` from Herdr, or the first time
+the dialog saw the agent in that status. The dialog only exists while it is open, so it cannot see changes that
+happen while it is closed: with only the third source, an agent that went idle yesterday counts from your next open.
+The times on screen refresh every 30 seconds while the dialog is open.
 
 Previews are best effort. They are tuned to Claude Code style screens (question boxes, numbered choices, `(y/n)`
-hints, bullet message lines). Other agents may show a blank second line; the row still works.
+hints, bullet message lines that start in the first column). Other agents may show a blank second line; the row
+still works. A screen that has not changed is read again about every 30 seconds instead of every 3; a change of the
+agent's status, or of Herdr's sequence number for it, is read at once, so a question that appears without either
+may show up to about 30 seconds late.
 
 More in the documentation site (plain HTML in [docs/](docs/index.html): [install](docs/install.html),
 [usage](docs/usage.html), [configuration](docs/configuration.html), [how it works](docs/how-it-works.html),
@@ -133,6 +142,8 @@ seen, it moves to "observed on <OS>, Herdr <version>".
 | The unit of a tab's `changed_at` and what it marks. | Note when an agent in a tab of its own went blocked, then open the dialog: the time should match your clock. |
 | Polling stops when the dialog closes. | With a blocked agent waiting and the dialog closed, watch for `hc read` calls in a process monitor: none should start. |
 | The palette entry for `mod.open`. | Open the palette, look for `mod.open`, see whether it asks for a name. |
+| The 30-second redraw of a quiet dialog, so "5m" becomes "6m". | Leave the dialog open for a minute with an agent that has a time. |
+| A question that appears without Herdr's sequence number moving shows up within about 30 seconds. | Let an agent ask something while the dialog is open and time the preview. |
 | Linux and Windows. | Install and open the dialog there. |
 
 ## Privacy and permissions
@@ -143,8 +154,9 @@ What this mod does on your machine, so you can decide before installing:
   `hc read <address> --lines 60` (Herdr's own tool; the screen plus up to 60 lines of history above it; at most 4
   at a time) for agents that are blocked or finished, and shows one line of it. That line lives in memory and goes away when the dialog closes.
   It is never written to disk or sent anywhere.
-- **Stores two small things.** A map from agent address to the time it was first seen in its current status, in the
-  mod's own `localStorage` (key `attention.seen`, no screen text), and your sort choice in Herdr's shared state (`attention.sort`).
+- **Stores two small things.** A map from agent address to the time it was first seen in its current status (with
+  the status group, Herdr's sequence number for the agent and its space id), in the mod's own `localStorage` (key
+  `attention.seen`, no screen text), and your sort choice in Herdr's shared state (`attention.sort`).
 - **Reads shared values** `agents.since` and `space.colors` if present. It never writes them.
 - **No network, no `exec`, no file access.** The only program it runs is `hc read`. Choosing a row calls Herdr's
   `agent.focus`; it sends no input to any terminal.
@@ -169,7 +181,8 @@ Herdr's instructions ask an installing agent to tell you this before it adds a m
 | The dialog is cut off | It needs a window about 440 px tall. Make the window taller or zoom out. |
 
 Longer answers: [docs/troubleshooting.html](docs/troubleshooting.html). Report problems on the repository's issue
-tracker with your Herdr version (`herdr-app --version`) and OS.
+tracker (the [bug report form](.github/ISSUE_TEMPLATE/bug_report.yml) asks for your Herdr version, `herdr-app
+--version`, and OS). Report a security problem privately, as [.github/SECURITY.md](.github/SECURITY.md) describes.
 
 ## Uninstall
 

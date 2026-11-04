@@ -25,7 +25,7 @@
 <li>Check that the line is in both the <code>global</code> and the <code>terminal</code> section of <code>keys.json</code>, and that the file is valid JSON (a trailing comma is the usual culprit).</li>
 <li>Another key or a program in your terminal may use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Bind a different key (<a href="install.html#rebind">Install</a>).</li>
 <li>Open it without the key to separate the problems: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. If that works, the binding is the issue. If not, the folder is. (<a href="#quoting">Quoting</a> differs on Windows.)</li>
-<li><code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code> reports problems in the mod itself. It does not catch a renamed folder with an unchanged <code>HOME</code>; see <a href="#icons">icons</a>.</li>
+<li><code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code> reports problems in the mod itself. It does not catch a renamed folder with an unchanged <code>HOME</code>, a broken <code>mod.json</code> or a missing key; <code>node scripts/verify-install.mjs &lt;mod folder&gt; --home &lt;Herdr home&gt;</code>, run from a clone of this repository, does (see <a href="install.html#by-hand">Install</a>).</li>
 </ul>
 
 <h2 id="key-layout">Another binding wins, or the key reaches my terminal program</h2>
@@ -80,7 +80,7 @@
 <p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
 
 <h2 id="report">Reporting a problem</h2>
-<p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a> with your Herdr version, OS, what you pressed and what you saw. Do not paste terminal contents you would not want public.</p>
+<p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a>; the form (<a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/.github/ISSUE_TEMPLATE/bug_report.yml">bug_report.yml</a>) asks for your Herdr version (<code>herdr-app --version</code>), OS, what you pressed and what you saw. Do not paste terminal contents you would not want public. For a security problem, such as the mod reaching something it says it does not, follow <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/.github/SECURITY.md">SECURITY.md</a> and report it privately.</p>
 
 </main>
 <footer class="site">

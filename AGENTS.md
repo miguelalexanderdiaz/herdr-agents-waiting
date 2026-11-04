@@ -24,7 +24,7 @@ from here after each round (see "Syncing the portrait layout").
 | `mods/attention-picker/spinner.svg`, `search.svg` | the icons, loaded as `mods/attention-picker/<file>` |
 | `keys.json` | the key the mod expects: `ctrl-shift-a` to `mod.open:attention-picker` |
 | `RECIPE.md`, `preview.png` | the brief and illustration Herdr's sharing format asks for |
-| `tests/` | `node:test` tests of the pure modules |
+| `tests/` | `node:test` tests: the pure modules, `main.js` under stand-in modules (`tests/helpers/`), and the repository scripts |
 | `scripts/` | `validate.mjs`, `privacy-scan.mjs`, `check-docs.mjs`, `check-local.mjs` (the one-shot gate that runs all of them), `ci.workflow.yml` |
 | `docs/` | the GitHub Pages site (plain HTML and CSS) |
 | `plans/round-N/` | each improvement round's plan, role logs and summaries |
@@ -41,7 +41,8 @@ Follow Herdr's "Layouts and mods other people made" steps.
      3 s, at most 4 at a time). That reads other terminals' screen text (the screen plus up to 60 lines of history above it). One line per agent is
      kept in memory; nothing is stored or sent.
    - stores in its own local storage (key `attention.seen`) a map from agent address to the time it was first seen in its
-     status. No screen text. It also writes the shared value `attention.sort`.
+     status (`{ s, at, q, sp }`: status group, time, Herdr's seq for the agent, its space id). No screen text. It also
+     writes the shared value `attention.sort`.
    - does not use the network, `exec`, or any file outside its folder, and sends no input to terminals. Say it as
      this mod's policy, not as a Herdr rule: Herdr would let a mod do all of that, and only `scripts/validate.mjs`
      and the `rg` commands in the claim map below hold this one to it.
@@ -58,7 +59,9 @@ Follow Herdr's "Layouts and mods other people made" steps.
    Never replace a key without asking.
 5. Run `herdr-app check <absolute path of the installed mod folder>`. It must pass. It only renders once, does
    not run later timers or reads, and passes a renamed folder with a wrong `HOME`, so tell the person to press the
-   key and look.
+   key and look. `node scripts/verify-install.mjs <installed mod folder> --home <Herdr home>` (or `HERDR_APP_HOME`)
+   covers what `herdr-app check` passes: folder name against `HOME`, icons, `mod.json`, and a key for
+   `mod.open:<folder>` in `keys.json`. It is read-only; untested on Linux and Windows.
 6. Do not edit the person's live Herdr home beyond steps 3 and 4: Herdr reloads on every save.
 
 ## Adapting it
@@ -74,13 +77,18 @@ Follow Herdr's "Layouts and mods other people made" steps.
 ## Testing
 
 ```bash
-npm test                                            # node --test: logic.js and ask.js (Node 22+, no dependencies)
+npm test                                            # node --test: logic.js, ask.js, main.js under stand-in modules, the scripts (Node 22+)
 node scripts/validate.mjs                           # structure, JSON, contract, capabilities
 node scripts/privacy-scan.mjs                       # no personal data in the tree or the history
 node scripts/check-docs.mjs                         # docs links, Pages assets, no external origins
 node scripts/check-local.mjs                        # the one-shot gate: all of the above plus herdr-app check
+node scripts/verify-install.mjs <installed mod folder> [--home <Herdr home>]   # an installed copy: name, icons, mod.json, key
 herdr-app check <absolute path to mods/attention-picker>   # Herdr validates the mod (needs the desktop app)
 ```
+
+`tests/main.test.mjs` runs the real `main.js` under Node with stand-ins for `gpui-kit`, `gpui-base` and `herdr`
+(`tests/helpers/`). It proves the wiring (imports exist, keys and dismiss behave, what is written to shared state and
+storage), not how anything is drawn, and the stand-ins are not Herdr: a pass is no proof that it works live.
 
 Use `npm test` or plain `node --test`. Do not pass the folder (`node --test tests/`): on Node 22.14 and 26.5 (the
 versions it was run on) a directory argument is loaded as a module and fails. `package.json` declares Node `>=22`;
@@ -157,22 +165,25 @@ Run from the repository root. Each command should print what the claim says.
 
 | Claim | Command | Expect |
 |---|---|---|
-| Named constants (folder, poll, lines, concurrency, storage key, home-space name) | `rg -n "^const (HOME\|POLL_MS\|READ_LINES\|READ_CONCURRENCY\|SEEN_KEY\|HOME_SPACE_NAME)" mods/attention-picker/main.js` | 6 lines: `mods/attention-picker`, 3000, 60, 4, `attention.seen`, `~` |
+| Named constants (folder, poll, tick, lines, concurrency, storage key, home-space name, list height) | `rg -n "^const (HOME\|POLL_MS\|TICK_MS\|READ_LINES\|READ_CONCURRENCY\|SEEN_KEY\|HOME_SPACE_NAME\|LIST_H)" mods/attention-picker/main.js` | 8 lines: `mods/attention-picker`, 3000, 30_000, 60, 4, `attention.seen`, `~`, 320 |
 | The only program run is `hc read`, no network, no file access | `rg -n "hc\(\|exec\(\|fetch\(\|readTextFile\|writeTextFile" mods/` | one hit: `hc(["read", address, "--lines", ...` in `main.js` |
 | Local storage holds only the first-seen map | `rg -n "localStorage\." mods/` | two hits in `main.js`, `getItem` and `setItem` of `SEEN_KEY`, both inside `try` |
 | Shared keys and props used | `rg -n 'shared\("\|setShared\("\|props\(\)' mods/attention-picker/main.js` | `attention.sort` (read, write), `space.colors`, `agents.since` (read only), `props()` for `search` and `overlay` |
 | Search is on unless `search: false` | `rg -n "search !== false" mods/attention-picker/logic.js` | `pickSearch` |
-| Status time order: shared, tab, local record | `rg -n "export function statusSince" -B8 -A12 mods/attention-picker/logic.js` | shared `agents.since`, then `working_since` or `changed_at`, then the record |
-| Local record shape and pruning | `rg -n "export function (parseSeen\|trackSeen)\|const MAX_SEEN" mods/attention-picker/logic.js` | `{ s, at }` per address, 500 entries read at most |
+| Status time order, and the stale shared-time guard | `rg -n "export function statusSince\|STALE_SLACK\|function tabProvesNewer" mods/attention-picker/logic.js` | shared `agents.since` (skipped when the tab proves a newer change by more than `STALE_SLACK` = 10_000 ms, for a lone blocked or working agent), then `working_since` or `changed_at`, then the record |
+| Local record shape and pruning | `rg -n "export function (parseSeen\|trackSeen)\|const MAX_SEEN\|const record" mods/attention-picker/logic.js` | `{ s, at, q, sp }` per address (`q` and `sp` optional), 500 entries read at most; new when `seq` goes down or the space changes |
 | 24 hour fold and its conditions | `rg -n "const DAY\|const old = " mods/attention-picker/logic.js` | not working, not focused, known start older than `DAY` |
-| Sorts | `rg -n "SORTS =\|SORT_LABEL =" mods/attention-picker/` | recent, oldest, space; labels Recent, Oldest, Space order |
-| Empty-state strings | `rg -n "No agents running\|Start one and it will show here\|No match\|Nothing needs you right now" mods/` | `emptyState()` in `logic.js`, the title fallback in `main.js` |
+| Sorts, unknown time last | `rg -n "SORTS =\|SORT_LABEL =\|function bySince" mods/attention-picker/` | recent, oldest, space; labels Recent, Oldest, Space order; a row with no start sorts last either way |
+| Title counts ignore the search | `rg -n "export function headline" -A8 mods/attention-picker/logic.js` | counts blocked, else done, from all agents |
+| Space colors tolerate odd shared data | `rg -n "export const MARK\|export function resolveSpaceColor\|export function normalizeHex" mods/attention-picker/logic.js` and `rg -n "resolveSpaceColor" mods/attention-picker/main.js` | hex `#rgb`/`#rrggbb`/`#rrggbbaa`, names, junk falls back to `ansi6` then `dim` |
+| Settled screens are re-read about every 30 s; a quiet dialog redraws every 30 s | `rg -n "RECHECK\|export function createPreviewReader" mods/attention-picker/logic.js` and `rg -n "TICK_MS" mods/attention-picker/main.js` | skipped only with same status and `seq`, two equal successful reads, at most `RECHECK` = 10 passes in a row |
+| Empty-state strings | `rg -n "No agents running\|Start one and it will show here\|No match\|Nothing needs you right now" mods/` | `emptyState()` and `headline()` in `logic.js` |
 | Icons load from the mod's own folder | `rg -n "HOME\}/\|workspace-chrome" mods/` | two `${HOME}/...svg` lines; no `workspace-chrome` outside comments |
-| Preview parsing limits | `rg -n "MAX_LEN =\|slice\(-40\)\|MARKERS =" mods/attention-picker/ask.js` | 200 characters, the last 40 non-empty lines of what `hc read` returned, markers `●` `⏺` `•` |
+| Preview parsing limits | `rg -n "MAX_LEN =\|slice\(-40\)\|MARKERS =\|MAX_MESSAGE_INDENT" mods/attention-picker/ask.js` | 200 characters, the last 40 non-empty lines of what `hc read` returned, markers `●` `⏺` `•`, a message marker only in the first column |
 | Command run on pick | `rg -n 'run\("' mods/attention-picker/main.js` | `agent.focus` with `{ terminal }`; `overlay.close` only as a fallback when `props().overlay` is missing |
 | Key shipped | `rg -n "ctrl-shift-a" keys.json` | two lines, `global` and `terminal`, both `mod.open:attention-picker` |
 | Overlay | `cat mods/attention-picker/mod.json` | `"kind": "dialog"`, `"width": 640` |
-| Tests | `npm test` | all pass (`package.json` runs `node --test`) |
+| Tests | `npm test` | all pass (`package.json` runs `node --test`; `engines` says `>=22`) |
 
 ## Known limits
 
@@ -180,8 +191,9 @@ Run from the repository root. Each command should print what the claim says.
   nothing is known to run there.
 - Status times from the local first-seen record are estimates: the dialog cannot observe changes while closed.
 - Previews are only tested on Claude Code style screens (see the fixtures in `tests/ask.test.mjs`).
-- A shared `agents.since` left behind by a layout you stopped using can be stale and still win; only a partial guard
-  exists (see the code-review notes in the latest `plans/round-*/`).
+- A shared `agents.since` left behind by a layout you stopped using can be stale and still win; the guard in `statusSince`
+  (`STALE_SLACK`) covers only a blocked or working agent alone in its tab. A complete fix needs a heartbeat key from
+  the layout that writes `agents.since`.
 
 ## Verification status
 
@@ -195,6 +207,7 @@ tests; none were watched in a live window. Do not write "works" or "run in Herdr
 - `hc read --lines 60` returns the screen plus 60 lines of history; the unit and meaning of a tab's `changed_at`;
 - polling stops when the dialog closes;
 - the command palette entry for `mod.open`;
+- the 30-second redraw of a quiet dialog, and a question that appears without `seq` moving showing within about 30 s;
 - anything on Linux or Windows.
 
 When someone observes one, change the row to "observed on <OS>, Herdr <version>" in the README and the docs page.

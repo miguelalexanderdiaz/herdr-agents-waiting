@@ -54,10 +54,10 @@ ask me before replacing any key I already use. Then run herdr-app check on the m
   "global":   { "ctrl-shift-a": "mod.open:attention-picker" },
   "terminal": { "ctrl-shift-a": "mod.open:attention-picker" }
 }</code></pre></li>
-<li>Check the mod: <code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code>. Herdr loads mods and keys live, so there is no restart.</li>
+<li>Check the mod: <code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code>. Herdr loads mods and keys live, so there is no restart. Then, from a clone of this repository, run <code>node scripts/verify-install.mjs ~/.config/herdr-app/mods/attention-picker --home ~/.config/herdr-app</code> (Node 22 or newer; set <code>HERDR_APP_HOME</code> instead of <code>--home</code> if you prefer). It is read-only and checks the folder name against <code>HOME</code>, that both icons exist, that <code>mod.json</code> is valid and that your <code>keys.json</code> has a key for <code>mod.open:attention-picker</code>. It has not been run on Linux or Windows.</li>
 <li>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>.</li>
 </ol>
-<div class="note"><p><strong>The check is not a full test.</strong> <code>herdr-app check</code> renders the mod once. It does not run the timers or the screen reads that happen after the dialog has been open for a while, and it passes a mod whose folder was renamed without changing <code>HOME</code>. Open the dialog in the app too.</p></div>
+<div class="note"><p><strong>The check is not a full test.</strong> <code>herdr-app check</code> proves the code loads and renders once. It does not run the timers or the screen reads that happen after the dialog has been open for a while, and it passes a broken <code>mod.json</code> or a mod whose folder was renamed without changing <code>HOME</code>; <code>verify-install.mjs</code> covers those two. Open the dialog in the app too.</p></div>
 
 <h3 id="other-ways">Other ways to open it</h3>
 <ul>
@@ -94,6 +94,8 @@ ask me before replacing any key I already use. Then run herdr-app check on the m
 <tr><td>The unit of a tab's <code>changed_at</code> and what it marks.</td><td>Note when an agent in a tab of its own went blocked, then open the dialog: its time should match your wall clock.</td></tr>
 <tr><td>Polling stops when the dialog closes.</td><td>With a blocked agent waiting, close the dialog and watch for <code>hc read</code> calls with a process monitor: none should start. It is written so (the poll lives in the dialog's own view), but nobody has watched.</td></tr>
 <tr><td>The palette entry for <code>mod.open</code>.</td><td>Open the command palette, search "mod.open" or "Open mod", and see whether it asks for a name.</td></tr>
+<tr><td>The 30-second redraw of a quiet dialog, so "5m" becomes "6m".</td><td>Leave the dialog open for a minute with an agent that shows a time.</td></tr>
+<tr><td>A question that appears without Herdr's sequence number moving shows up within about 30 seconds.</td><td>Let an agent ask something while the dialog is open and time the preview.</td></tr>
 <tr><td>Linux and Windows.</td><td>Install on that system and open the dialog; CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked.</td></tr>
 </tbody>
 </table></div>
