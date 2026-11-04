@@ -18,7 +18,8 @@ const OWNER = ALLOWED_STRINGS[0].split("/")[0];
 const ALLOWED_MAIL = [/@users\.noreply\.github\.com$/i, /^noreply@anthropic\.com$/i, /^git@github\.com$/i];
 // Home folder names that are not a person: CI runners and the placeholders tests and docs use.
 const GENERIC_HOMES = new Set(["runner", "vsts", "ubuntu", "user", "username", "name", "you", "me", "dev", "example", "someone", "alice", "bob"]);
-const generic = (m) => GENERIC_HOMES.has(m[1].toLowerCase());
+// A bare ellipsis (a path written as "..." in prose) names no one.
+const generic = (m) => GENERIC_HOMES.has(m[1].toLowerCase()) || /^\.+$/.test(m[1]);
 
 // Patterns are written so this file does not match itself.
 const RULES = [

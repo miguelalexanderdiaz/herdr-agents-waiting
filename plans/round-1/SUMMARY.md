@@ -46,3 +46,6 @@ Branch: feat/round-1-standalone-picker. Goal: make attention-picker work in anyo
 7. Re-verify the docs claim map against the final tree; add the Pages URL; swap in a real preview.png.
 8. Address reuse across restarts with an empty agent list (low impact).
 9. Resync the portrait layout repo's copy from this repo.
+
+## Integration note
+The first summary commit copied the board with a literal "/Users/..." example sentence, which the history scan flagged. Force-pushing was not permitted in this run, so instead the board copy was reworded and the privacy scan now treats a bare ellipsis as a placeholder, not a person. No real path or name was ever in the history.

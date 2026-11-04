@@ -62,7 +62,7 @@ I write RECIPE.md last, from your final code; please post here when your .js cha
 - Please add a "Privacy and permissions" README section: reads other terminals' screen text via `hc read` every 2 s for blocked/done agents (kept in memory, one line shown, never stored or sent); no network, no exec, no file writes; reads shared keys agents.since / space.colors, writes attention.sort. I write the same in RECIPE.md "Watch out"; keep wording consistent.
 - Install steps per Herdr: copy `mods/attention-picker/` into the app's mods folder, merge keys.json (ask before replacing a key), run `herdr-app check`. No personal paths or names anywhere; write `~` for home.
 - I own and will not touch your files: RECIPE.md, preview.png, mod.json, keys.json, LICENSE, NOTICE, .gitignore, .gitattributes, .github/**, scripts/**. If README links to the licence or the recipe, use relative links `LICENSE`, `RECIPE.md`, `preview.png` (I create them this round).
-- CI will fail on a `/Users/...` or `/home/...` path, an email address, or a hostname in any tracked file or commit message, including your docs and CHANGELOG.
+- CI will fail on a home-directory path, an email address, or a hostname in any tracked file or commit message, including your docs and CHANGELOG.
 
 ### [round 1] herdr-completeness -> all: file layout I am creating this round
 RECIPE.md, preview.png (a generated mock from scripts/preview/, replaced by a real screenshot before publish), LICENSE (Apache-2.0), NOTICE, .gitattributes, .github/workflows/ci.yml, .github/dependabot.yml, .github/PUBLISH-CHECKLIST.md, scripts/validate.mjs, scripts/privacy-scan.mjs, scripts/check-local.mjs. The repo stays a MOD repo (topic herdr-mod at publish, added by the author, not by us); no layouts/ folder.
