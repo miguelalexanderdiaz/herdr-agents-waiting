@@ -200,6 +200,19 @@ if (report.hc.length) {
 const n = (a) => `${a.length} place${a.length === 1 ? "" : "s"}`;
 r.note(`capabilities: network ${n(report.network)}, exec ${n(report.exec)}, hc ${n(report.hc)}, localStorage ${n(report.storage)}, file access ${n(report.fileWrite)}`);
 
+// ---- 9b. numbers RECIPE.md quotes from the code stay equal to the code
+if (has(root, `mods/${FOLDER}/main.js`) && has(root, "RECIPE.md")) {
+  const main = read(root, `mods/${FOLDER}/main.js`), rec = read(root, "RECIPE.md");
+  for (const name of ["POLL_MS", "READ_LINES", "READ_CONCURRENCY", "LIST_H"]) {
+    const m = new RegExp(`\\bconst ${name}\\s*=\\s*(\\d+)`).exec(main);
+    if (!m) { if (rec.includes(name)) r.fail(`RECIPE.md names ${name}, but main.js has no 'const ${name} = <number>'`); continue; }
+    if (rec.includes(name) && !new RegExp(`${name}\\\`?\\s*=\\s*${m[1]}\\b`).test(rec)) r.fail(`RECIPE.md quotes ${name} with a different value than main.js (${m[1]})`);
+  }
+  const home = /\bconst HOME\s*=\s*"([^"]+)"/.exec(main);
+  if (!home) r.fail("main.js has no 'const HOME = \"mods/<folder>\"' (the one place the folder name is written)");
+  else if (home[1] !== `mods/${FOLDER}`) r.fail(`main.js HOME is "${home[1]}", expected "mods/${FOLDER}"`);
+}
+
 // ---- 10. SVG assets: plain shapes, no scripts or external references, tinted by currentColor
 for (const f of files.filter((f) => f.startsWith("mods/") && f.endsWith(".svg"))) {
   const s = read(root, f);
