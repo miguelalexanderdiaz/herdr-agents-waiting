@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 the herdr-agents-waiting authors; licence: LICENSE in the repository
 // "Agents waiting" (a dialog): the agents that need you and the finished ones in a
 // plain list, then, under a rule, every other agent grouped by space. Picking
 // one shows it (agent.focus) and closes the dialog.
@@ -62,7 +64,7 @@ export default class AttentionPicker extends View {
     this.scroll = 0;
     this.search = pickSearch(_props ?? props());
     this.showEarlier = false;
-    this.dead = false;
+    this.dead = false; // only guards cx.notify(): tasks and timers are owned by the view and end with it
     this.seen = loadSeen();
     this.track(agents(), Date.now()); // also drops agents that are gone
     // What each waiting agent says (its last question), read off its screen.

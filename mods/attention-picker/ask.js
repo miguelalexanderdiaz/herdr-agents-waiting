@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 the herdr-agents-waiting authors; licence: LICENSE in the repository
 // What a waiting agent is saying, from its screen text (hc read): for one
 // that needs you, the last question on screen ("Do you want to proceed?");
 // else the start of its last message (a "●" line, as Claude Code and similar
