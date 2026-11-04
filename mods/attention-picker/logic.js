@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 the herdr-agents-waiting authors; licence: LICENSE in the repository
 // The pure part of "Agents waiting": row building, sorting, search, selection,
 // status times and the preview reader. No Herdr or gpui-kit imports, so
-// `node --test tests/` can load it. main.js owns everything that draws or talks
+// `npm test` can load it. main.js owns everything that draws or talks
 // to Herdr.
 
 export const DAY = 24 * 3600 * 1000;
