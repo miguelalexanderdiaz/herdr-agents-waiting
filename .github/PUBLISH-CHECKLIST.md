@@ -6,6 +6,14 @@ visibility, settings, topics or Pages, and they do not drive the running app. In
 
 Work through it top to bottom. Each item is a command or a URL.
 
+## 0. Land the CI workflow (round 1 could not push it)
+
+- [ ] The round agents' GitHub token has no `workflow` scope, so GitHub refused to take `.github/workflows/ci.yml`
+  from them. The finished file is kept as the commit "Add CI on Linux, Windows and macOS" on the local branch
+  `feat/round-1-standalone-picker--herdr-completeness-ci` of the working copy. With your own login:
+  `gh auth refresh -s workflow`, then `git push origin feat/round-1-standalone-picker--herdr-completeness-ci`
+  (or copy the file by hand). Then read the first three-OS run: `gh run list`.
+
 ## 1. Before the repository goes public
 
 - [ ] **Replace `preview.png` with a real screenshot.** The file in the repo is an illustration drawn from

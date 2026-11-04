@@ -35,9 +35,10 @@ for (const f of files.filter((f) => f.endsWith(".json"))) {
 }
 
 // ---- 2. required files
-for (const f of ["LICENSE", "NOTICE", "RECIPE.md", "preview.png", "keys.json", ".gitignore", ".gitattributes", ".github/workflows/ci.yml"]) {
+for (const f of ["LICENSE", "NOTICE", "RECIPE.md", "preview.png", "keys.json", ".gitignore", ".gitattributes"]) {
   if (!has(root, f)) r.fail(`missing ${f}`);
 }
+if (!has(root, ".github/workflows/ci.yml")) (isCI ? r.fail : r.note)("no .github/workflows/ci.yml" + (isCI ? "" : " (warning: pushing a workflow file needs a token with the workflow scope; see .github/PUBLISH-CHECKLIST.md)"));
 if (!has(root, "README.md")) (isCI ? r.fail : r.note)("README.md is missing" + (isCI ? "" : " (warning: the documentation role adds it)"));
 
 // ---- 3. this is a mod repo: mods/<name>/ only, no layouts/
