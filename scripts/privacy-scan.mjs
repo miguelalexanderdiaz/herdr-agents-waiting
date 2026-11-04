@@ -11,8 +11,8 @@ const root = rootFromArgs();
 const r = reporter("privacy-scan");
 const files = repoFiles(root);
 
-// Exact strings that are deliberate and public: the clone URL / herdr.dev path.
-const ALLOWED_STRINGS = ["miguelalexanderdiaz/herdr-agents-waiting"];
+// Exact strings that are deliberate and public: the clone URL / herdr.dev path, and the Pages address.
+const ALLOWED_STRINGS = ["miguelalexanderdiaz/herdr-agents-waiting", "miguelalexanderdiaz.github.io/herdr-agents-waiting"];
 const OWNER = ALLOWED_STRINGS[0].split("/")[0];
 // E-mail domains that are fine: GitHub's no-reply addresses and the Claude co-author line.
 const ALLOWED_MAIL = [/@users\.noreply\.github\.com$/i, /^noreply@anthropic\.com$/i, /^git@github\.com$/i];
