@@ -57,4 +57,4 @@ No constant that RECIPE or `validate.mjs` quotes changed: `HOME`, `POLL_MS` 3000
 ## Handoffs for the next round
 
 - Portrait sync list is unchanged: `mod.json`, `main.js`, `logic.js`, `ask.js`, `spinner.svg`, `search.svg`. The portrait copy gains the new constants and the record shape; props and shared keys are as before.
-- First live run: watch for `hc read` count after closing the dialog (see CR-2-8 note: if processes linger, add `async close() { this.dead = true; }` is NOT allowed to shadow `close`; the host calls `close(cx)` as cleanup, so adding it would be the intended hook), the Tab key with the search box focused, the 30 s redraw, and whether a boxed question still previews.
+- First live run: watch whether `hc read` processes linger after the dialog closes (if so, add `close(cx) { this.dead = true; }` as the host's cleanup hook; today the view's own tasks end with it), the Tab key with the search box focused, the 30 s redraw, and whether a boxed question still previews.
