@@ -245,3 +245,91 @@ test("privacy-scan: a PNG text chunk that was committed and replaced is found in
     writeFileSync(path(d, "preview.png"), clean);
     gitCommit(d, "Replace the screenshot");
   }, "history"));
+
+// ================================================================================== verify-install
+// An installed copy: <home>/mods/attention-picker plus <home>/keys.json (the repository's own).
+function withInstall(body, folder = "attention-picker") {
+  return withCopy(async (repo) => {
+    const home = mkdtempSync(join(tmpdir(), "hc-home-"));
+    try {
+      const modDir = join(home, "mods", folder);
+      mkdirSync(modDir, { recursive: true });
+      for (const f of FILES.filter((f) => f.startsWith("mods/attention-picker/"))) copyFileSync(join(REPO, ...f.split("/")), join(modDir, f.split("/").pop()));
+      copyFileSync(join(REPO, "keys.json"), join(home, "keys.json"));
+      return await body({ home, modDir });
+    } finally { rmSync(home, { recursive: true, force: true }); }
+  });
+}
+function verify(args, env = {}) {
+  const r = spawnSync(process.execPath, [join(SCRIPTS, "verify-install.mjs"), ...args], { encoding: "utf8", env: { ...process.env, HERDR_APP_HOME: "", ...env } });
+  return { status: r.status, out: `${r.stdout}${r.stderr}` };
+}
+test("verify-install: a clean install with the key bound passes", () =>
+  withInstall(({ home, modDir }) => {
+    const r = verify([modDir, "--home", home]);
+    assert.equal(r.status, 0, r.out);
+    assert.match(r.out, /opens attention-picker/);
+    assert.match(r.out, /reaches: network no; programs hc read only/);
+  }));
+test("verify-install: HERDR_APP_HOME works instead of --home", () =>
+  withInstall(({ home, modDir }) => { const r = verify([modDir], { HERDR_APP_HOME: home }); assert.equal(r.status, 0, r.out); }));
+test("verify-install: the repository's mod folder passes without a home", () => {
+  const r = verify([join(REPO, "mods", "attention-picker")]);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.out, /keys.json not checked/);
+});
+test("verify-install: no folder given is a usage error", () => { assert.equal(verify([]).status, 2); });
+test("verify-install: a renamed folder fails (HOME no longer matches)", () =>
+  withInstall(({ home, modDir }) => {
+    const r = verify([modDir, "--home", home]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /called "renamed" but main\.js expects "mods\/attention-picker"/);
+  }, "renamed"));
+test("verify-install: a missing icon fails", () =>
+  withInstall(({ home, modDir }) => {
+    rmSync(join(modDir, "spinner.svg"));
+    const r = verify([modDir, "--home", home]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /spinner\.svg does not exist/);
+  }));
+test("verify-install: a key that opens another mod fails", () =>
+  withInstall(({ home, modDir }) => {
+    writeFileSync(join(home, "keys.json"), JSON.stringify({ global: { "ctrl-shift-a": "mod.open:something-else" } }));
+    const r = verify([modDir, "--home", home]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /no key whose action is "mod\.open:attention-picker"/);
+  }));
+test("verify-install: a missing keys.json fails when a home is given", () =>
+  withInstall(({ home, modDir }) => {
+    rmSync(join(home, "keys.json"));
+    const r = verify([modDir, "--home", home]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /does not exist: no key opens the mod/);
+  }));
+test("verify-install: a folder that is not <home>/mods/<name> fails", () =>
+  withInstall(({ home, modDir }) => {
+    const r = verify([modDir, "--home", join(home, "mods")]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /Herdr loads mods from <home>\/mods\/<name>/);
+  }));
+test("verify-install: a broken mod.json that herdr-app check would pass fails", () =>
+  withInstall(({ modDir }) => {
+    writeFileSync(join(modDir, "mod.json"), '{ "place": "none", "overlay": { "kind": "dialg", "width": "640" } }');
+    const r = verify([modDir]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /overlay\.kind/);
+    assert.match(r.out, /overlay\.width must be a number/);
+  }));
+test("verify-install: a forbidden import in the installed code fails", () =>
+  withInstall(({ modDir }) => {
+    writeFileSync(join(modDir, "main.js"), readFileSync(join(modDir, "main.js"), "utf8") + '\nimport { exec as sh } from "herdr";\n');
+    const r = verify([modDir]);
+    assert.equal(r.status, 1, r.out);
+    assert.match(r.out, /"exec" from "herdr"/);
+  }));
+test("verify-install: Herdr's own generated files are ignored", () =>
+  withInstall(({ modDir }) => {
+    writeFileSync(join(modDir, "gpui-kit.d.ts"), "export declare const x: number;\n");
+    writeFileSync(join(modDir, "jsconfig.json"), "{}\n");
+    assert.equal(verify([modDir]).status, 0);
+  }));

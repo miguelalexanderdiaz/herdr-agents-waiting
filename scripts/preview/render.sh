@@ -1,4 +1,5 @@
 #!/bin/sh
+# POSIX sh (Linux, macOS; on Windows use Git Bash or WSL). Author-only tool: nothing in CI or in the mod needs it.
 # Renders preview.svg to ../../preview.png (1100x705).
 # Needs an SVG rasteriser: rsvg-convert (librsvg), or Inkscape, or ImageMagick.
 # Fonts: the SVG asks for Geist, then common system sans fonts; install any one of them.

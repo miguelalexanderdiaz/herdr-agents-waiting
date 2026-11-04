@@ -1,3 +1,5 @@
+# Actions only, on purpose: the repository has no npm, pip or other dependencies (package.json lists none).
+# Do not add an npm block; it would pull a manifest that must stay dependency-free into automated updates.
 version: 2
 updates:
   - package-ecosystem: github-actions

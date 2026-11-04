@@ -6,6 +6,7 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { codeLines, has, isBinary, read, reporter, repoFiles, rootFromArgs } from "./lib.mjs";
 import { readFileSync } from "node:fs";
+import { analyzeModCode, checkModJson, EXEC_RE, FILE_RE, NETWORK_RE, SPDX_LINE } from "./modrules.mjs";
 
 const root = rootFromArgs();
 const r = reporter("validate");
@@ -22,8 +23,6 @@ export const CONTRACT = {
   commands: ["agent.focus"],
 };
 const FOLDER = "attention-picker";
-const PLACES = ["right", "left", "top", "bottom", "none"];
-const KINDS = ["dialog", "popup", "window"];
 const RECIPE_HEADINGS = ["What you see", "How it behaves", "Built from", "Watch out", "Done when"];
 const MAX_FILE = 1024 * 1024;
 const MAX_PREVIEW = 600 * 1024;
@@ -105,18 +104,7 @@ for (const m of mods) {
   const mj = json[`mods/${m}/mod.json`];
   if (!mj) { r.fail(`mods/${m}/mod.json is missing or invalid`); continue; }
   if (typeof mj !== "object" || Array.isArray(mj)) { r.fail(`mods/${m}/mod.json must be an object`); continue; }
-  if (mj.place !== undefined && !PLACES.includes(mj.place)) r.fail(`mods/${m}/mod.json: place "${mj.place}" is not one of ${PLACES.join("|")}`);
-  if (mj.size !== undefined && typeof mj.size !== "number") r.fail(`mods/${m}/mod.json: size must be a number`);
-  if (mj.focusable !== undefined && typeof mj.focusable !== "boolean") r.fail(`mods/${m}/mod.json: focusable must be a boolean`);
-  if (mj.title !== undefined && typeof mj.title !== "string") r.fail(`mods/${m}/mod.json: title must be a string`);
-  const o = mj.overlay;
-  if (o !== undefined) {
-    if (typeof o !== "object" || o === null) r.fail(`mods/${m}/mod.json: overlay must be an object`);
-    else {
-      if (o.kind !== undefined && !KINDS.includes(o.kind)) r.fail(`mods/${m}/mod.json: overlay.kind "${o.kind}" is not one of ${KINDS.join("|")}`);
-      for (const k of ["width", "height"]) if (o[k] !== undefined && typeof o[k] !== "number") r.fail(`mods/${m}/mod.json: overlay.${k} must be a number`);
-    }
-  }
+  checkModJson(mj, `mods/${m}/mod.json`, (msg) => r.fail(msg));
 }
 // Herdr writes these into every mod folder; they must never be committed.
 for (const f of files) {
@@ -200,74 +188,6 @@ if (has(root, "RECIPE.md")) {
   if (img >= 0 && firstH2 >= 0 && img > firstH2) r.fail("RECIPE.md: the preview image must come before '## What you see'");
 }
 
-// ---- 9a. what a mod's code may import and call (allow-lists, so an alias cannot get past them)
-// To allow something new: update RECIPE.md "What it reaches" and README "Privacy and permissions" FIRST,
-// then add it here, on purpose. Names, not behaviour, are what a script can check; this is a policy
-// check on the source, not a sandbox (Herdr does not sandbox mods).
-export const HERDR_NAMES = ["agents", "spaces", "run", "hc", "theme", "settings", "shared", "setShared", "props", "closeOverlay"];
-export const RUN_COMMANDS = ["agent.focus", "overlay.close"];
-export const HC_FIRST_ARG = "read";
-export const IMPORT_SPECIFIERS = ["./logic.js", "./ask.js", "gpui-kit", "gpui-base", "herdr"];
-export const SPDX_LINE = "// SPDX-License-Identifier: Apache-2.0";
-
-// Returns { imports: [{ spec, names: [{ imported, local }] }], problems: [string] } for one file's code
-// (comments already removed). Line numbers are not kept: the file name is enough to find a one-line finding.
-export function analyzeModCode(code, file = "file") {
-  const problems = [];
-  const imports = [];
-  const bad = (m) => problems.push(`${file}: ${m}`);
-  const importRe = /\bimport\b\s*(?:([\w$*{}\s,]*?)\s*\bfrom\s*)?(["'])([^"']+)\2/g;
-  for (const m of code.matchAll(importRe)) {
-    const clause = (m[1] ?? "").trim();
-    const entry = { spec: m[3], names: [] };
-    if (clause) {
-      const braces = /\{([^}]*)\}/.exec(clause);
-      if (/\*\s*as\b/.test(clause)) entry.namespace = true;
-      const dflt = clause.replace(/\{[^}]*\}/, "").replace(/,/g, " ").trim();
-      if (dflt && !entry.namespace) entry.default = dflt;
-      if (braces) {
-        for (const part of braces[1].split(",").map((x) => x.trim()).filter(Boolean)) {
-          const [imported, , local] = part.split(/\s+/);
-          entry.names.push({ imported, local: local ?? imported });
-        }
-      }
-    }
-    imports.push(entry);
-  }
-  for (const m of code.matchAll(/\bexport\b[^;\n]*?\bfrom\s*(["'])([^"']+)\1/g)) imports.push({ spec: m[2], names: [], reexport: true });
-  for (const e of imports) {
-    if (!IMPORT_SPECIFIERS.includes(e.spec)) bad(`imports "${e.spec}", which is not on the allow-list (${IMPORT_SPECIFIERS.join(", ")}). Update RECIPE.md "What it reaches" first, then IMPORT_SPECIFIERS in scripts/validate.mjs`);
-  }
-  if (/\bimport\s*\(/.test(code)) bad("dynamic import() is not allowed (it could load anything)");
-  if (/\brequire\s*\(/.test(code)) bad("require() is not allowed");
-  if (/\beval\s*\(|\bnew\s+Function\b|(^|[^.\w$])Function\s*\(/.test(code)) bad("eval / Function constructors are not allowed");
-  if (/\bglobalThis\s*\[|Reflect\s*\.\s*get\s*\(\s*globalThis|\bglobalThis\s*\.\s*(fetch|exec|process)\b|\bprocess\s*\./.test(code)) bad("reaching globals by name or by computed property is not allowed");
-  const local = {}; // imported name -> local names, for names from "herdr"
-  for (const e of imports.filter((x) => x.spec === "herdr")) {
-    if (e.namespace || e.default) bad('imports "herdr" as a namespace or default; list the names so they can be checked');
-    for (const n of e.names) {
-      if (!HERDR_NAMES.includes(n.imported)) bad(`imports "${n.imported}" from "herdr", which is not on the allow-list (${HERDR_NAMES.join(", ")}). Update RECIPE.md "What it reaches" first, then HERDR_NAMES in scripts/validate.mjs`);
-      (local[n.imported] ??= []).push(n.local);
-    }
-  }
-  const body = code.replace(importRe, " ");
-  const calls = (names, test, what) => {
-    for (const name of names) {
-      const esc = name.replace(/[$]/g, "\\$");
-      const at = new RegExp(`(?<![.\\w$])${esc}(?![\\w$])`, "g");
-      for (const m of body.matchAll(at)) {
-        const after = body.slice(m.index + m[0].length);
-        const call = /^\s*\(\s*([\s\S]{0,80})/.exec(after);
-        if (!call) { bad(`${what} is used as a value, not called directly; aliasing it would defeat the check`); continue; }
-        if (!test(call[1])) bad(`${what} is called with an argument that is not on the allow-list`);
-      }
-    }
-  };
-  calls(local.run ?? [], (a) => new RegExp(`^(["'])(${RUN_COMMANDS.map((c) => c.replace(".", "\\.")).join("|")})\\1\\s*[,)]`).test(a), `run() (only ${RUN_COMMANDS.join(" and ")} with a string literal)`);
-  calls(local.hc ?? [], (a) => new RegExp(`^\\[\\s*(["'])${HC_FIRST_ARG}\\1\\s*[,\\]]`).test(a), `hc() (only an array literal starting "${HC_FIRST_ARG}")`);
-  return { imports, problems, herdr: Object.keys(local).sort() };
-}
-
 // ---- 9. mod code: compatibility contract, foreign mods, capability report
 const report = { network: [], exec: [], hc: [], storage: [], fileWrite: [], outside: [], imports: new Set(), herdrNames: new Set() };
 for (const m of mods) {
@@ -297,14 +217,14 @@ for (const m of mods) {
     if (!src.split(/\r?\n/, 3).some((l) => l.trim() === SPDX_LINE)) r.fail(`${f}: the first 3 lines must include "${SPDX_LINE}" (a copied mod folder has to carry its licence)`);
     for (const { n, text } of cl) {
       const at = `${f}:${n}`;
-      if (/\bfetch\s*\(|new\s+(XMLHttpRequest|WebSocket|EventSource)\b|sendBeacon\s*\(/.test(text)) report.network.push(at);
+      if (NETWORK_RE.test(text)) report.network.push(at);
       if (/https?:\/\//.test(text) && !/^\s*import\b/.test(text)) report.network.push(at + " (url)");
       if (/^\s*import\b.*["']https?:/.test(text)) report.network.push(at + " (remote import)");
       // cx.spawn is Herdr's async task helper, not a program launch; only exec, execFile and child_process count.
-      if (/\bexec\s*\(|\bexecFile\s*\(|child_process/.test(text)) report.exec.push(at);
+      if (EXEC_RE.test(text)) report.exec.push(at);
       if (/\bhc\s*\(/.test(text)) report.hc.push(at);
       if (/\b(localStorage|sessionStorage|indexedDB)\b/.test(text)) report.storage.push(at);
-      if (/\b(writeTextFile|writeFile|readTextFile|readFile|readDir)\s*\(/.test(text)) report.fileWrite.push(at);
+      if (FILE_RE.test(text)) report.fileWrite.push(at);
       if (/["'`](\.\.\/|~\/|\/etc\/|[A-Za-z]:\\)/.test(text)) report.outside.push(at);
       // Another mod's name in code (not in a comment) is a dependency on something a stranger lacks.
       if (/workspace-chrome|bar-strip|portrait/.test(text)) r.fail(`${at}: names another mod/layout in code (allowed on comment lines only)`);

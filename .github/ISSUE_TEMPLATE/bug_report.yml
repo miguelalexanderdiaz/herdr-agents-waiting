@@ -1,0 +1,54 @@
+name: Bug report
+description: The Agents waiting dialog does not open, shows the wrong thing, or misbehaves
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please do not paste terminal text from real agents, real space or agent names,
+        file paths from your machine or anything private. Describe or invent an example instead.
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: For example macOS 15, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: herdr
+    attributes:
+      label: Herdr version
+      description: The output of `herdr-app --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it
+      options:
+        - Asked Herdr to add it from herdr.dev
+        - Copied mods/attention-picker by hand
+        - Part of another layout
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How many agents, in which states (needs you, finished, working, idle), and which keys you pressed
+  - type: textarea
+    id: checks
+    attributes:
+      label: Output of the checks
+      description: |
+        The output of `herdr-app check <your mods/attention-picker folder>` and of
+        `node scripts/verify-install.mjs <that folder>` (from a clone of this repository). Remove any path that
+        names you.
+      render: text
