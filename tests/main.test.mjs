@@ -255,7 +255,7 @@ test("the first-seen record is saved under attention.seen, without screen text",
   assert.deepEqual([...storage.data.keys()], ["attention.seen"]);
   const record = JSON.parse(storage.data.get("attention.seen"));
   assert.deepEqual(Object.keys(record).sort(), ["t1", "t2", "t3", "t4"]);
-  for (const e of Object.values(record)) assert.deepEqual(Object.keys(e).sort(), ["at", "s"]);
+  for (const e of Object.values(record)) assert.deepEqual(Object.keys(e).sort(), ["at", "q", "s", "sp"]);
 });
 
 test("storage that throws on get and set does not stop init or render", () => {

@@ -33,7 +33,7 @@ const HOME = "mods/attention-picker"; // this mod's folder, for its own assets
 const POLL_MS = 3000; // how often waiting agents' screens are re-read
 const READ_LINES = 60; // lines of each screen hc read returns
 const READ_CONCURRENCY = 4; // hc read calls in flight at once
-const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms } }
+const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms, q: seq, sp: space id } }
 const HOME_SPACE_NAME = "~"; // Herdr names a space after its folder; the home folder shows as "~" and is drawn dim
 
 const H = { head: 29, agent: 32, waiting: 46, sep: 17, earlier: 35 }; // row heights, as in Go to…

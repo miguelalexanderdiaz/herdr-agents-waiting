@@ -547,3 +547,60 @@ test("buildRows: the tab's agent count ignores the search filter", () => {
   const rows = buildRows({ agents: [a, b], spaces, sharedSince: { [a.address]: stale }, query: "alpha", now: NOW });
   assert.equal(rows.find((r) => r.key === a.address).since, stale);
 });
+
+// ---- first-seen record: q and sp, null times -------------------------------------
+
+test("trackSeen: a new record stores the agent's seq and space", () => {
+  const r = trackSeen({}, [{ address: "t1", status: "blocked", seq: 7, space: "s1" }], NOW);
+  assert.deepEqual(r.seen.t1, { s: "blocked", at: NOW, q: 7, sp: "s1" });
+});
+
+test("trackSeen: a seq that went down starts a new record", () => {
+  const first = trackSeen({}, [{ address: "t1", status: "idle", seq: 50, space: "s1" }], NOW).seen;
+  const grew = trackSeen(first, [{ address: "t1", status: "idle", seq: 60, space: "s1" }], NOW + MIN);
+  assert.equal(grew.changed, false);
+  assert.equal(grew.seen.t1.at, NOW);
+  const reused = trackSeen(first, [{ address: "t1", status: "idle", seq: 3, space: "s1" }], NOW + 2 * MIN);
+  assert.equal(reused.changed, true);
+  assert.deepEqual(reused.seen.t1, { s: "rest", at: NOW + 2 * MIN, q: 3, sp: "s1" });
+});
+
+test("trackSeen: a different space starts a new record", () => {
+  const first = trackSeen({}, [{ address: "t1", status: "idle", seq: 5, space: "s1" }], NOW).seen;
+  const moved = trackSeen(first, [{ address: "t1", status: "idle", seq: 6, space: "s2" }], NOW + MIN);
+  assert.equal(moved.seen.t1.at, NOW + MIN);
+  assert.equal(moved.seen.t1.sp, "s2");
+});
+
+test("trackSeen: an older record without q and sp keeps its time and gains them", () => {
+  const legacy = parseSeen('{"t1":{"s":"rest","at":' + NOW + '}}');
+  assert.deepEqual(legacy.t1, { s: "rest", at: NOW });
+  const r = trackSeen(legacy, [{ address: "t1", status: "idle", seq: 9, space: "s1" }], NOW + 5 * MIN);
+  assert.deepEqual(r.seen.t1, { s: "rest", at: NOW, q: 9, sp: "s1" });
+  assert.equal(r.changed, true);
+  const again = trackSeen(r.seen, [{ address: "t1", status: "idle", seq: 9, space: "s1" }], NOW + 6 * MIN);
+  assert.equal(again.changed, false);
+});
+
+test("trackSeen: agents without seq or space (older callers) behave as before", () => {
+  const r = trackSeen({}, [{ address: "t1", status: "idle" }], NOW);
+  assert.deepEqual(r.seen.t1, { s: "rest", at: NOW });
+  assert.equal(trackSeen(r.seen, [{ address: "t1", status: "idle" }], NOW + MIN).changed, false);
+});
+
+test("parseSeen: q and sp are kept when valid and dropped when odd", () => {
+  const out = parseSeen(JSON.stringify({ a: { s: "rest", at: 5, q: 3, sp: "s1" }, b: { s: "rest", at: 5, q: "x", sp: 7 } }));
+  assert.deepEqual(out.a, { s: "rest", at: 5, q: 3, sp: "s1" });
+  assert.deepEqual(out.b, { s: "rest", at: 5 });
+});
+
+test("buildRows: an agent with an unknown time sorts last under Recent and under Oldest", () => {
+  const known1 = agent({ tab: "k1" });
+  const known2 = agent({ tab: "k2" });
+  const unknown = agent({ tab: "k3" });
+  const spaces = [space("s1", "api", [tab({ id: "k1", changed_at: NOW - 10 * MIN }), tab({ id: "k2", changed_at: NOW - 60 * MIN })])];
+  for (const [sort, first] of [["recent", known1], ["oldest", known2]]) {
+    const rows = buildRows({ agents: [unknown, known1, known2], spaces, sort, now: NOW }).filter((r) => r.kind === "agent");
+    assert.deepEqual(rows.map((r) => r.key), [first.address, first === known1 ? known2.address : known1.address, unknown.address], sort);
+  }
+});

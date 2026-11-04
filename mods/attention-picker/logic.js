@@ -161,31 +161,47 @@ function tabProvesNewer(tab, status, shared) {
 }
 
 const MAX_SEEN = 500;
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+const isStr = (v) => typeof v === "string";
 
 // Reads the stored first-seen map defensively: anything odd gives {}.
+// A record is { s: status group, at: ms, q: the agent's seq then, sp: its space id };
+// q and sp are optional (records from older versions have only s and at).
 export function parseSeen(raw) {
   let obj;
   try { obj = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return {}; }
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
   const out = {};
   for (const [address, e] of Object.entries(obj).slice(0, MAX_SEEN)) {
-    if (e && typeof e.s === "string" && okTime(e.at)) out[address] = { s: e.s, at: e.at };
+    if (!e || typeof e.s !== "string" || !okTime(e.at)) continue;
+    out[address] = { s: e.s, at: e.at };
+    if (isNum(e.q)) out[address].q = e.q;
+    if (isStr(e.sp)) out[address].sp = e.sp;
   }
   return out;
 }
 
+const record = (g, at, a) => ({ s: g, at, ...(isNum(a.seq) ? { q: a.seq } : {}), ...(isStr(a.space) ? { sp: a.space } : {}) });
+
 // Brings the first-seen map up to date with the agents now running:
-// a new address (or a changed status group) starts at `now`; an address that
-// is gone is dropped (only while some agents exist, so an empty list during
-// a reload does not wipe the record). Returns { seen, changed }; `seen` is a new object.
+// a new address, a changed status group, a seq that went down (a counter that
+// restarted means a different run behind a reused address) or a different space
+// starts a record at `now`; an address that is gone is dropped (only while some
+// agents exist, so an empty list during a reload does not wipe the record).
+// An older record without q or sp keeps its time and gains them. Returns
+// { seen, changed }; `seen` is a new object.
 export function trackSeen(seen, list, now) {
   const next = {};
   let changed = false;
-  for (const { address, status } of list) {
-    const g = statusGroup(status);
-    const e = seen[address];
-    if (e && e.s === g && okTime(e.at)) next[address] = e;
-    else { next[address] = { s: g, at: now }; changed = true; }
+  for (const a of list) {
+    const g = statusGroup(a.status);
+    const e = seen[a.address];
+    const same = e && e.s === g && okTime(e.at)
+      && !(isNum(e.q) && isNum(a.seq) && a.seq < e.q)
+      && !(isStr(e.sp) && isStr(a.space) && a.space !== e.sp);
+    if (!same) { next[a.address] = record(g, now, a); changed = true; continue; }
+    const fill = { ...(e.q === undefined && isNum(a.seq) ? { q: a.seq } : {}), ...(e.sp === undefined && isStr(a.space) ? { sp: a.space } : {}) };
+    if (Object.keys(fill).length) { next[a.address] = { ...e, ...fill }; changed = true; } else next[a.address] = e;
   }
   if (list.length === 0) {
     for (const [address, e] of Object.entries(seen)) next[address] = e;
@@ -196,6 +212,15 @@ export function trackSeen(seen, list, now) {
 }
 
 // ---- rows -----------------------------------------------------------------
+
+// Orders two rows by the time their status began (dir 1: oldest first, -1: newest
+// first). A row whose time is unknown goes last either way.
+function bySince(x, y, dir) {
+  if (x.since === y.since) return 0;
+  if (x.since == null) return 1;
+  if (y.since == null) return -1;
+  return dir * (x.since - y.since);
+}
 
 // All words of the query must appear somewhere in the haystack (order free).
 export function matchesQuery(haystack, query) {
@@ -237,8 +262,8 @@ export function buildRows({ agents, spaces = [], sharedSince = {}, seen = {}, qu
   const top = all.filter(waiting)
     .map((r) => ({ ...r, kind: "waiting", sub: [r.a.space_name, r.a.tab_name].filter(Boolean).join(" · ") }));
   const by = {
-    recent: (x, y) => (y.since ?? 0) - (x.since ?? 0),
-    oldest: (x, y) => (x.since ?? 0) - (y.since ?? 0),
+    recent: (x, y) => bySince(x, y, -1),
+    oldest: (x, y) => bySince(x, y, 1),
     space: (x, y) => x.idx - y.idx,
   }[normalizeSort(sort)];
   const rest = all.filter((r) => !waiting(r)).sort((x, y) => by(x, y) || x.idx - y.idx)
