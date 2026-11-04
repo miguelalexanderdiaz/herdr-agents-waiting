@@ -7,6 +7,10 @@ published. The plans, audits and logs behind each round are in [plans/](plans/) 
 
 ## [Unreleased]
 
+### Added
+
+- One-line install: `install/install.sh` (macOS, Linux; `curl ... | sh`) and `install/install.ps1` (Windows; `irm ... | iex`). They say what the mods reach and ask first, copy the mods in (backing up what they replace), merge `keys.json` asking before replacing a key, run `herdr-app check`, and remove what they added with `--uninstall`. Tested on all three systems in CI (`tests/install.test.mjs`).
+
 ### Round 2: check what round 1 claimed, then harden it
 
 #### New

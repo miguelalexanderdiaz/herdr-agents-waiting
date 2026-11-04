@@ -20,6 +20,13 @@
 <h1>Install</h1>
 <p class="lead">The mod is one folder. You copy it, bind a key, and check it.</p>
 
+<h2 id="one-command">One command</h2>
+<p>macOS and Linux:</p>
+<pre tabindex="0"><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.sh | sh</code></pre>
+<p>Windows (PowerShell):</p>
+<pre tabindex="0"><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-agents-waiting/main/install/install.ps1 | iex</code></pre>
+<p>It says what the mod reaches (no network; <code>hc read</code> on waiting agents' screens while the list is open) and asks before writing anything. Then it copies <code>mods/attention-picker</code> into your Herdr home, adds <code>ctrl-shift-a</code> to <code>keys.json</code> (asking before it replaces a key you use) and runs <code>herdr-app check</code>. Anything it replaces is backed up first under <code>community/herdr-agents-waiting/</code> in the Herdr home, and running it again updates in place. <code>sh -s -- --yes</code> answers every question with yes (Windows: <code>$env:HERDR_YES = 1</code> first); <code>--home &lt;folder&gt;</code> or <code>HERDR_APP_HOME</code> picks another Herdr home; from a clone, run <code>install/install.sh</code> or <code>.\install\install.ps1</code>. Merging <code>keys.json</code> uses Node, or on macOS the system's own JavaScript; without either the script prints the keys to add by hand. To remove it: the same line with <code>sh -s -- --uninstall</code> (Windows: <code>$env:HERDR_UNINSTALL = 1</code> first). </p>
+
 <h2 id="requirements">Requirements</h2>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Requirements"><table>
 <thead><tr><th scope="col">Need</th><th scope="col">Detail</th></tr></thead>
