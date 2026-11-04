@@ -272,6 +272,42 @@ if (has(root, `mods/${FOLDER}/main.js`) && has(root, "RECIPE.md")) {
   else if (home[1] !== `mods/${FOLDER}`) r.fail(`main.js HOME is "${home[1]}", expected "mods/${FOLDER}"`);
 }
 
+// ---- 9c. the sentences RECIPE.md writes from the code (the twelve a reader could get wrong)
+// Each row: what RECIPE says (a regex with capture groups), where the code says it, and how to read it.
+// `code` is a regex over that file with the same captures, or a function from RECIPE's captures to a
+// string that must appear in the file. A claim that cannot be found on either side fails by name.
+export const CLAIMS = [
+  { name: "row heights", rec: /head (\d+), agent (\d+), waiting (\d+), rule (\d+), earlier (\d+)/, file: `mods/${FOLDER}/main.js`, code: /head:\s*(\d+),\s*agent:\s*(\d+),\s*waiting:\s*(\d+),\s*sep:\s*(\d+),\s*earlier:\s*(\d+)/ },
+  { name: "dialog width", rec: /A dialog, (\d+)px wide/, file: `mods/${FOLDER}/mod.json`, code: /"width":\s*(\d+)/ },
+  { name: "spinner period", rec: /turning every (\d+)ms/, file: `mods/${FOLDER}/main.js`, code: /\.spin\((\d+)\)/ },
+  { name: "storage key", rec: /`localStorage` key `([\w.]+)`/, file: `mods/${FOLDER}/main.js`, code: /const SEEN_KEY = "([^"]+)"/ },
+  { name: "longest preview", rec: /at most (\d+) characters/, file: `mods/${FOLDER}/ask.js`, code: /MAX_LEN = (\d+)/ },
+  { name: "message markers", rec: /starts with `(.)`, `(.)` or `(.)`/, file: `mods/${FOLDER}/ask.js`, code: /MARKERS = \["(.)", "(.)", "(.)"\]/ },
+  { name: "key hint", rec: /key hint reads "([^"]+)"/, file: `mods/${FOLDER}/main.js`, code: (hint) => `"${hint}"` },
+  { name: "search placeholder", rec: /placeholder "([^"]+)"/, file: `mods/${FOLDER}/main.js`, code: (text) => `placeholder: "${text}"` },
+  { name: "sort labels", rec: /\("([^"]+)", "([^"]+)" or "([^"]+)"\)/, file: `mods/${FOLDER}/main.js`, code: /recent: "([^"]+)", oldest: "([^"]+)", space: "([^"]+)"/ },
+  { name: "empty-state strings", rec: /says "(No agents running)" and "(Start one and it will show here)"/, file: `mods/${FOLDER}/logic.js`, code: (title, body) => `title: "${title}", body: "${body}"` },
+  { name: "stored entries", rec: /capped at (\d+) entries/, file: `mods/${FOLDER}/logic.js`, code: /const MAX_SEEN = (\d+)/ },
+  { name: "fold age", rec: /whose status began more than (\d+) hours ago/, file: `mods/${FOLDER}/logic.js`, code: /const DAY = (\d+) \* 3600 \* 1000/ },
+];
+if (has(root, "RECIPE.md")) {
+  const rec = read(root, "RECIPE.md");
+  for (const c of CLAIMS) {
+    const said = c.rec.exec(rec);
+    if (!said) { r.fail(`RECIPE.md: the sentence for "${c.name}" is gone or reworded (expected ${c.rec})`); continue; }
+    if (!has(root, c.file)) { r.fail(`${c.file} is missing (RECIPE.md "${c.name}" is checked against it)`); continue; }
+    const code = read(root, c.file);
+    const mine = said.slice(1);
+    if (typeof c.code === "function") {
+      if (!code.includes(c.code(...mine))) r.fail(`RECIPE.md "${c.name}" says ${JSON.stringify(mine)}, which ${c.file} does not contain`);
+    } else {
+      const found = c.code.exec(code);
+      if (!found) r.fail(`${c.file}: cannot find the source of RECIPE.md "${c.name}" (${c.code})`);
+      else if (found.slice(1).join("|") !== mine.join("|")) r.fail(`RECIPE.md "${c.name}" says ${JSON.stringify(mine)} but ${c.file} has ${JSON.stringify(found.slice(1))}`);
+    }
+  }
+}
+
 // ---- 10. SVG assets: plain shapes, no scripts or external references, tinted by currentColor
 for (const f of files.filter((f) => f.startsWith("mods/") && f.endsWith(".svg"))) {
   const s = read(root, f);

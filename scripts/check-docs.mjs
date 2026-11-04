@@ -90,12 +90,12 @@ const MAIN = "mods/attention-picker/main.js";
 const plain = (html) => html.replace(/<[^>]+>/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&middot;/g, "·").replace(/\s+/g, " ");
 const consts = {};
 if (has(root, MAIN)) {
-  for (const m of text(MAIN).matchAll(/^const ([A-Z][A-Z0-9_]*)\s*=\s*("[^"\n]*"|'[^'\n]*'|-?\d+(?:\.\d+)?)\s*;/gm)) {
-    consts[m[1]] = /^["']/.test(m[2]) ? m[2].slice(1, -1) : Number(m[2]);
+  for (const m of text(MAIN).matchAll(/^const ([A-Z][A-Z0-9_]*)\s*=\s*("[^"\n]*"|'[^'\n]*'|-?\d[\d_]*(?:\.\d+)?)\s*;/gm)) {
+    consts[m[1]] = /^["']/.test(m[2]) ? m[2].slice(1, -1) : Number(m[2].replace(/_/g, ""));
   }
   // Other _MS constants in the mod (a slower tick, say) are legal values for "every N seconds".
   for (const f of files.filter((f) => /^mods\/attention-picker\/.+\.js$/.test(f))) {
-    for (const m of text(f).matchAll(/\b(?:const|export const) ([A-Z][A-Z0-9_]*_MS)\s*=\s*(\d+)/g)) consts[m[1]] = Number(m[2]);
+    for (const m of text(f).matchAll(/\b(?:const|export const) ([A-Z][A-Z0-9_]*_MS)\s*=\s*(\d[\d_]*)/g)) consts[m[1]] = Number(m[2].replace(/_/g, ""));
   }
 }
 const CONFIG_CONSTANTS = ["HOME", "POLL_MS", "READ_LINES", "READ_CONCURRENCY", "SEEN_KEY", "HOME_SPACE_NAME", "LIST_H"];

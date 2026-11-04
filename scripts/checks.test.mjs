@@ -177,6 +177,25 @@ test("validate: an SVG with a script fails", () =>
 test("validate: package.json must name the licence", () =>
   failsWith("validate.mjs", (d) => sub(d, "package.json", '"Apache-2.0"', '"MIT"'), "package.json"));
 
+// RECIPE claims written from the code
+const LOGIC = "mods/attention-picker/logic.js";
+test("validate: RECIPE row heights follow main.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, MAIN, "waiting: 46", "waiting: 50"), 'RECIPE.md "row heights"'));
+test("validate: RECIPE key hint follows main.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, MAIN, "↑↓ choose · Enter go · Tab sort · Esc", "↑↓ pick · Enter go · Tab sort · Esc"), 'RECIPE.md "key hint"'));
+test("validate: RECIPE search placeholder follows main.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, MAIN, 'placeholder: "Search agents, spaces, programs…"', 'placeholder: "Find"'), 'RECIPE.md "search placeholder"'));
+test("validate: RECIPE sort labels follow main.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, MAIN, 'space: "Space order"', 'space: "By space"'), 'RECIPE.md "sort labels"'));
+test("validate: RECIPE empty-state strings follow logic.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, LOGIC, 'body: "Start one and it will show here"', 'body: "Start one"'), 'RECIPE.md "empty-state strings"'));
+test("validate: RECIPE stored-entry cap follows logic.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, LOGIC, "const MAX_SEEN = 500", "const MAX_SEEN = 100"), 'RECIPE.md "stored entries"'));
+test("validate: RECIPE preview length follows ask.js", () =>
+  failsWith("validate.mjs", (d) => sub(d, "mods/attention-picker/ask.js", "MAX_LEN = 200", "MAX_LEN = 120"), 'RECIPE.md "longest preview"'));
+test("validate: a reworded RECIPE claim is reported, not skipped", () =>
+  failsWith("validate.mjs", (d) => sub(d, "RECIPE.md", "turning every 900ms", "turning slowly"), 'the sentence for "spinner period"'));
+
 // ====================================================================================== privacy-scan
 test("privacy-scan: the repository itself passes", () => passes("privacy-scan.mjs"));
 test("privacy-scan: a macOS home path in a file fails", () =>
@@ -380,7 +399,7 @@ test("check-docs: a stale 'lines of history' number fails", () => withDocs((d) =
 test("check-docs: a stale list height fails", () => withDocs((d) => append(d, "README.md", "\nThe list is at most 300 px tall.\n"), "300 px"));
 test("check-docs: another tick is allowed only if the code has it", async () => {
   await withDocs((d) => append(d, "README.md", "\nIt sorts again every 30 seconds.\n"), "every 30 seconds");
-  await withDocs((d) => { append(d, "README.md", "\nIt sorts again every 30 seconds.\n"); append(d, "mods/attention-picker/main.js", "const TICK_MS = 30000;\n"); });
+  await withDocs((d) => { append(d, "README.md", "\nIt sorts again every 30 seconds.\n"); append(d, "mods/attention-picker/main.js", "const TICK_MS = 30_000;\n"); });
 });
 test("check-docs: a changed constant makes the configuration page stale", () => withDocs((d) => sub(d, "mods/attention-picker/main.js", "const POLL_MS = 3000;", "const POLL_MS = 2000;"), "the POLL_MS row does not show the value"));
 test("check-docs: a constant without a table row fails", () => withDocs(pageEdit("configuration", "<tr><td><code>LIST_H</code></td><td>320</td></tr>", ""), "no table row for LIST_H"));
