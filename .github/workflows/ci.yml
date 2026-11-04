@@ -1,13 +1,7 @@
 name: ci
 
-# This file is the CI definition of the repository. It lives in scripts/ because the
-# automation token used while the repository was prepared has no `workflow` scope, so
-# GitHub refuses any push that touches .github/workflows/. It does NOTHING until the
-# owner installs it (step 0 of .github/PUBLISH-CHECKLIST.md):
-#   copy it to .github/workflows/ci.yml, byte for byte, and push with a login that has
-#   the `workflow` scope (gh auth refresh -s workflow), or add it in the GitHub web UI.
-# `node scripts/validate.mjs` lints this file and, once installed, checks that both
-# copies are identical.
+# The CI definition of the repository. A byte-for-byte copy lives in scripts/ci.workflow.yml;
+# `node scripts/validate.mjs` lints it and checks that both copies are identical.
 #
 # What it runs needs no Herdr install: structure and contract, privacy (files and
 # history), documentation links, the script tests and the unit tests of the pure code,
