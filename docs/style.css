@@ -59,7 +59,7 @@ p, ul, ol, table, pre, figure, .note { margin: 0.7rem 0; }
 ul, ol { padding-left: 1.4rem; }
 li { margin: 0.2rem 0; }
 a { color: var(--link); text-underline-offset: 2px; }
-a:focus-visible, button:focus-visible, nav.site a:focus-visible {
+a:focus-visible, button:focus-visible, nav.site a:focus-visible, .table-wrap:focus-visible, pre:focus-visible {
   outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px;
 }
 code, kbd, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 0.9em; }
@@ -84,9 +84,15 @@ th { color: var(--muted); font-weight: 600; white-space: nowrap; }
 .cards a { font-weight: 600; }
 .cards p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.95rem; }
 footer.site { padding-top: 16px; padding-bottom: 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+td:first-child code, th code { white-space: nowrap; overflow-wrap: normal; }
 @media (max-width: 480px) {
   h1 { font-size: 1.6rem; }
   body { font-size: 15.5px; }
+  /* The first column may wrap on a phone so the tables do not need a sideways scroll. */
+  th { white-space: normal; }
+  td:first-child code, th code { white-space: normal; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
-td:first-child code, th code { white-space: nowrap; overflow-wrap: normal; }
+@media (forced-colors: active) {
+  kbd, .note, .cards li, nav.site a[aria-current="page"] { border: 1px solid CanvasText; }
+}

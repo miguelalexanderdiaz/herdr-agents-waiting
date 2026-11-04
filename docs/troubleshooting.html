@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Troubleshooting - Agents waiting for Herdr</title>
-<meta name="description" content="Fixes for a key that does nothing, missing icons, times or previews, and name clashes in the Agents waiting mod.">
+<meta name="description" content="Fixes for a key that does nothing, missing icons, times or previews, a clipped dialog, and name clashes in the Agents waiting mod.">
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,14 +18,24 @@
 <main id="main">
 
 <h1>Troubleshooting</h1>
+<p>Some behavior has not been watched in a live window yet. Where an entry depends on it, it says so and points to <a href="install.html#verification">Verification status</a>.</p>
 
 <h2 id="key">The key does nothing</h2>
 <ul>
 <li>Check that the line is in both the <code>global</code> and the <code>terminal</code> section of <code>keys.json</code>, and that the file is valid JSON (a trailing comma is the usual culprit).</li>
 <li>Another key or a program in your terminal may use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>. Bind a different key (<a href="install.html#rebind">Install</a>).</li>
-<li>Open it without the key to separate the problems: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. If that works, the binding is the issue. If not, the folder is.</li>
-<li><code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code> reports problems in the mod itself.</li>
+<li>Open it without the key to separate the problems: <code>herdr-app do mod.open '{"name":"attention-picker"}'</code>. If that works, the binding is the issue. If not, the folder is. (<a href="#quoting">Quoting</a> differs on Windows.)</li>
+<li><code>herdr-app check ~/.config/herdr-app/mods/attention-picker</code> reports problems in the mod itself. It does not catch a renamed folder with an unchanged <code>HOME</code>, a broken <code>mod.json</code> or a missing key; <code>node scripts/verify-install.mjs &lt;mod folder&gt; --home &lt;Herdr home&gt;</code>, run from a clone of this repository, does (see <a href="install.html#by-hand">Install</a>).</li>
 </ul>
+
+<h2 id="key-layout">Another binding wins, or the key reaches my terminal program</h2>
+<ul>
+<li>A focused terminal uses the <code>terminal</code> section of <code>keys.json</code>, which is more specific than <code>global</code>. Without a <code>terminal</code> entry the key goes to the program in the terminal. Add the same line to both sections.</li>
+<li>A <code>layout:&lt;name&gt;</code> section in <code>keys.json</code> (named after the active layout) can override both. If <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> is already bound there, change or remove that line, or bind another key.</li>
+</ul>
+
+<h2 id="closes">The key does not close the dialog</h2>
+<p><kbd>Esc</kbd> always closes it. Pressing the key again should, because Herdr's <code>mod.open</code> toggles, but whether the key reaches Herdr while the search box has focus has not been observed. If it does not, use <kbd>Esc</kbd> and tell us your Herdr version and OS.</p>
 
 <h2 id="icons">No spinner or search icon</h2>
 <p>The icons are loaded from <code>mods/attention-picker/</code>. If you renamed the folder, change the <code>HOME</code> constant in <code>main.js</code> to match. If the two <code>.svg</code> files are missing, copy the whole folder again.</p>
@@ -32,32 +43,49 @@
 <h2 id="no-box">There is no search box</h2>
 <p>Something opened it with <code>search: false</code> and you are in the keys-only variant (1-9 jump badges). Open it with its own key to get the search box.</p>
 
+<h2 id="no-agents">It says "No agents running"</h2>
+<p>The dialog lists agents only: terminals whose program reports a status to Herdr, the same list Herdr's agent panels use. A plain shell does not count, so a window full of shells shows the empty state. Start an agent in a terminal and it appears. If you do have agents running and still see it, report it with your Herdr version.</p>
+
+<h2 id="finished-gone">A finished agent disappeared from the top</h2>
+<p>That is expected. Herdr calls an agent finished (<code>done</code>) only until you have looked at it, here or on another Herdr client, and then calls it idle. An idle agent sits under the rule with the others.</p>
+
 <h2 id="times">Times are missing or look wrong</h2>
 <ul>
 <li>A time only shows once the mod has a start for that agent. See <a href="usage.html#times">Waiting times</a>: it comes from <code>agents.since</code>, the tab, or the first time the dialog saw the agent.</li>
 <li>If the mod's local storage is unavailable, first-seen times cannot be kept and are re-learned on each open.</li>
 <li>The mod can only date a change it was open to see. An agent that finished while the dialog was closed counts from the tab's <code>changed_at</code> if there is one, or from the next time you open it.</li>
+<li>A shared <code>agents.since</code> left by a layout you stopped using can be stale and still wins in some cases. Remove that value from Herdr's shared state if you no longer run that layout.</li>
 </ul>
 
 <h2 id="preview">The second line is blank, or shows an ellipsis</h2>
 <ul>
 <li>An ellipsis is shown until the first read returns, normally under a few seconds.</li>
-<li>A blank line means no question or message was recognised on that terminal's screen. Recognition is tuned to Claude Code style screens (see <a href="usage.html#previews">Previews</a>). Other agents may show nothing; selecting the row still works.</li>
+<li>A blank line means no question or message was recognized on that terminal's screen. Recognition is tuned to Claude Code style screens (see <a href="usage.html#previews">Previews</a>). Other agents may show nothing; selecting the row still works.</li>
 <li>A blocked agent whose question is further back than the last 40 non-empty lines of its text may show an older line, or nothing.</li>
 </ul>
+
+<h2 id="small-window">The dialog is clipped in a small window</h2>
+<p>The dialog is 640 px wide (<code>mod.json</code>) and its list is up to 320 px high (<code>LIST_H</code> in <code>main.js</code>), so showing everything takes a window about 440 px tall. In a smaller window the list may shrink and scroll, or the dialog may be cut off; this has not been tried. Make the window taller, or zoom out with Herdr's <code>app.zoom_out</code> command.</p>
 
 <h2 id="clash">The mod did not install, or replaced mine</h2>
 <p>Do not overwrite a mod with the same name. Install under another name and change the folder, the <code>HOME</code> constant and the <code>keys.json</code> line (<a href="install.html#rename">Install</a>).</p>
 
+<h2 id="quoting">Running the command from a terminal</h2>
+<p>On macOS and Linux shells the JSON goes in single quotes:</p>
+<pre tabindex="0" role="region" aria-label="POSIX shell"><code>herdr-app do mod.open '{"name":"attention-picker"}'</code></pre>
+<p>Herdr's help also shows arguments given as flags, which needs no JSON quoting: <code>herdr-app do mod.open --name attention-picker</code>. Neither form has been tried here.</p>
+<p>On Windows the quoting of the JSON form depends on the shell (PowerShell and cmd.exe treat quotes differently, and PowerShell may need the inner quotes escaped). This has not been tried on Windows. The simple routes are the key, the command palette, or the flag form above.</p>
+
 <h2 id="windows-linux">Windows or Linux</h2>
-<p>The mod has no operating-system code, but it has only been run in Herdr on macOS. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
+<p>The mod has no operating-system code, but nobody has run it in Herdr on Linux or Windows. CI is defined in <code>scripts/ci.workflow.yml</code> (Linux, Windows and macOS, each on Node 22 and 24); it is enabled when the owner installs it and has not run yet. Until a run is green, treat Linux and Windows as unchecked. If something differs, open an issue with your OS, Herdr version (<code>herdr-app --version</code>) and what you saw. Herdr's home folder may be elsewhere than <code>~/.config/herdr-app</code>; use the folder your install says.</p>
 
 <h2 id="report">Reporting a problem</h2>
-<p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a> with your Herdr version, OS, what you pressed and what you saw. Do not paste terminal contents you would not want public.</p>
+<p>Open an issue on <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/issues">the repository</a>; the form (<a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/.github/ISSUE_TEMPLATE/bug_report.yml">bug_report.yml</a>) asks for your Herdr version (<code>herdr-app --version</code>), OS, what you pressed and what you saw. Do not paste terminal contents you would not want public. For a security problem, such as the mod reaching something it says it does not, follow <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/.github/SECURITY.md">SECURITY.md</a> and report it privately.</p>
 
 </main>
 <footer class="site">
 <p>Apache-2.0. <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting">Source on GitHub</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/AGENTS.md">Notes for AI agents</a> &middot; <a href="https://github.com/miguelalexanderdiaz/herdr-agents-waiting/blob/main/CHANGELOG.md">Changelog</a></p>
+<p>Site address, once the repository is public and Pages is on: <code>https://miguelalexanderdiaz.github.io/herdr-agents-waiting/</code></p>
 <p>This site is plain HTML and CSS. It loads nothing from other sites and runs no scripts.</p>
 </footer>
 </body>
