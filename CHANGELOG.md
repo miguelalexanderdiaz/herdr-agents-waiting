@@ -6,6 +6,10 @@ release number names the repository, not the mod. Releases are written here by [
 
 ## [Before the first release]
 
+### Fixed
+
+- The privacy scan no longer fails on GitHub's own merge message ("Merge pull request #N from <owner>/<branch>"): the owner there is the public handle already in the clone URL. It failed on `main` after every PR merge, never on the PR itself.
+
 ### Added
 
 - One-line install: `install/install.sh` (macOS, Linux; `curl ... | sh`) and `install/install.ps1` (Windows; `irm ... | iex`). They say what the mods reach and ask first, copy the mods in (backing up what they replace), merge `keys.json` asking before replacing a key, run `herdr-app check`, and remove what they added with `--uninstall`. Tested on all three systems in CI (`tests/install.test.mjs`).
